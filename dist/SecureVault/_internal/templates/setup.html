@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Create SecureVault{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+    <form class="auth-card" method="post">
+        <div class="auth-mark">SV</div>
+        <p class="eyebrow">First run setup</p>
+        <h1>Create SecureVault</h1>
+        <p class="muted">Choose a strong master password. It cannot be recovered if forgotten.</p>
+        <label>
+            Master password
+            <input type="password" name="master_password" minlength="10" autocomplete="new-password" required autofocus>
+        </label>
+        <label>
+            Confirm password
+            <input type="password" name="confirm_password" minlength="10" autocomplete="new-password" required>
+        </label>
+        <label>
+            Password hint
+            <input name="password_hint" placeholder="Safe hint only, never the actual password">
+        </label>
+        <button class="button primary full" type="submit">Create Encrypted Vault</button>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Security Settings - SecureVault{% endblock %}
+{% block heading %}Security Settings{% endblock %}
+{% block content %}
+<section class="split">
+    <form class="form-panel" method="post">
+        <h2>Vault Settings</h2>
+        <label>Password hint<input name="password_hint" value="{{ password_hint }}" placeholder="Safe hint only"></label>
+        <label>
+            Auto lock timeout
+            <select name="session_timeout_seconds">
+                <option value="300" {% if session_timeout_seconds == '300' %}selected{% endif %}>5 minutes</option>
+                <option value="900" {% if session_timeout_seconds == '900' %}selected{% endif %}>15 minutes</option>
+                <option value="1800" {% if session_timeout_seconds == '1800' %}selected{% endif %}>30 minutes</option>
+                <option value="3600" {% if session_timeout_seconds == '3600' %}selected{% endif %}>1 hour</option>
+            </select>
+        </label>
+        <label>Backup location<input name="backup_location" value="{{ backup_location }}" placeholder="Example: D:\SecureVaultBackups or Dropbox folder"></label>
+        <label class="check-row">
+            <input type="checkbox" name="auto_backup_enabled" {% if auto_backup_enabled %}checked{% endif %}>
+            Create encrypted auto backup once per day after login
+        </label>
+        <button class="button primary" type="submit">Save Settings</button>
+    </form>
+
+    <article class="panel">
+        <h2>Recovery And Backup</h2>
+        <div class="list">
+            <a class="button full" href="{{ url_for('change_master_password') }}">Change Master Password</a>
+            <form method="post" action="{{ url_for('generate_recovery_kit') }}">
+                <button class="button ghost full" type="submit">Generate New Recovery Kit</button>
+            </form>
+            <a class="button ghost full" href="{{ url_for('backup') }}">Export Encrypted Backup</a>
+            <form method="post" action="{{ url_for('restore_backup') }}" enctype="multipart/form-data" data-confirm="Restore this backup? Current vault data will be replaced.">
+                <label>Restore .svault backup<input type="file" name="backup_file" accept=".svault" required></label>
+                <button class="button danger full" type="submit">Restore Backup</button>
+            </form>
+        </div>
+    </article>
+</section>
+{% endblock %}

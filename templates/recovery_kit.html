@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Recovery Kit - SecureVault{% endblock %}
+{% block heading %}Recovery Kit{% endblock %}
+{% block content %}
+<section class="panel recovery-kit">
+    <p class="eyebrow">Print or save offline</p>
+    <h2>SecureVault Recovery Kit</h2>
+    <p class="muted">This phrase can recover your vault if you forget the master password. Store it offline in a safe place.</p>
+    {% if recovery_phrase %}
+    <div class="recovery-code">{{ recovery_phrase }}</div>
+    <button class="button primary" onclick="window.print()">Print Recovery Kit</button>
+    {% else %}
+    <div class="hint-box">Recovery phrase is shown only once. Generate a new kit from Security Settings if needed.</div>
+    {% endif %}
+    <div class="kit-meta">
+        <p><strong>Created:</strong> {{ created_at }}</p>
+        <p><strong>Developer:</strong> {{ developer_name }}</p>
+        <p><strong>GitHub:</strong> {{ developer_github }}</p>
+    </div>
+    <a class="button ghost" href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+</section>
+{% endblock %}

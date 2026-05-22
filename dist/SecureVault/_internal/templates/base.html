@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}SecureVault{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+    <div class="shell">
+        {% if configured and request.endpoint not in ['login', 'setup', 'recover'] %}
+        <aside class="sidebar" id="sidebar">
+            <a class="brand" href="{{ url_for('dashboard') }}">
+                <span class="brand-mark"><span>SV</span></span>
+                <span>
+                    <strong>SecureVault</strong>
+                    <small>Private local vault</small>
+                </span>
+            </a>
+            <nav class="nav">
+                <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}"><span class="nav-icon icon-dashboard"></span>Dashboard</a>
+                <a href="{{ url_for('passwords') }}" class="{% if 'password' in request.endpoint %}active{% endif %}"><span class="nav-icon icon-key"></span>Passwords</a>
+                <a href="{{ url_for('totp_accounts') }}" class="{% if 'totp' in request.endpoint %}active{% endif %}"><span class="nav-icon icon-otp"></span>Authenticator</a>
+                <a href="{{ url_for('notes') }}" class="{% if 'note' in request.endpoint %}active{% endif %}"><span class="nav-icon icon-note"></span>Secure Notes</a>
+                <a href="{{ url_for('financial_accounts') }}" class="{% if 'financial' in request.endpoint %}active{% endif %}"><span class="nav-icon icon-record"></span>Records Vault</a>
+                <a href="{{ url_for('documents') }}" class="{% if request.endpoint == 'documents' %}active{% endif %}"><span class="nav-icon icon-doc"></span>Documents</a>
+                <a href="{{ url_for('trash') }}" class="{% if request.endpoint == 'trash' %}active{% endif %}"><span class="nav-icon icon-trash"></span>Trash</a>
+                <a href="{{ url_for('health') }}" class="{% if request.endpoint == 'health' %}active{% endif %}"><span class="nav-icon icon-health"></span>Vault Health</a>
+                <a href="{{ url_for('settings') }}" class="{% if request.endpoint in ['settings', 'change_master_password', 'recovery_kit'] %}active{% endif %}"><span class="nav-icon icon-security"></span>Security</a>
+                <a href="{{ url_for('audit_log') }}" class="{% if request.endpoint == 'audit_log' %}active{% endif %}"><span class="nav-icon icon-audit"></span>Audit Log</a>
+            </nav>
+            <div class="sidebar-footer">
+                <small>Developer<br><a href="https://github.com/manoranjan2050" target="_blank" rel="noreferrer">MANORANJAN</a></small>
+                <a class="button ghost full" href="{{ url_for('backup') }}">Export Backup</a>
+                <a class="button danger full" href="{{ url_for('lock') }}">Lock Vault</a>
+            </div>
+        </aside>
+        {% endif %}
+
+        <main class="main">
+            {% if configured and request.endpoint not in ['login', 'setup', 'recover'] %}
+            <header class="topbar">
+                <button class="icon-button" data-sidebar-toggle aria-label="Toggle sidebar">Menu</button>
+                <div>
+                    <p class="eyebrow">Encrypted local dashboard</p>
+                    <h1>{% block heading %}SecureVault{% endblock %}</h1>
+                </div>
+            </header>
+            {% endif %}
+
+            <section class="flash-stack">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endwith %}
+            </section>
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

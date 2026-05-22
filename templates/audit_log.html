@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Audit Log - SecureVault{% endblock %}
+{% block heading %}Audit Log{% endblock %}
+{% block content %}
+<section class="table-panel">
+    <table>
+        <thead>
+            <tr><th>Time</th><th>Event</th><th>Message</th></tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+            <tr>
+                <td>{{ entry.created_at }}</td>
+                <td>{{ entry.event_type }}</td>
+                <td>{{ entry.message }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="empty">No audit events yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

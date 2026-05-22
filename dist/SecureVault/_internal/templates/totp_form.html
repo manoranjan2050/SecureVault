@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Authenticator - SecureVault{% endblock %}
+{% block heading %}{{ "Edit OTP" if entry else "Add OTP" }}{% endblock %}
+{% block content %}
+<form class="form-panel" method="post">
+    <label>Issuer<input name="issuer" value="{{ entry.issuer if entry else '' }}" placeholder="Google, GitHub, Zerodha"></label>
+    <label>Account name<input name="account_name" value="{{ entry.account_name if entry else '' }}" placeholder="email@example.com" required></label>
+    <label>TOTP secret or otpauth URL<input name="secret" value="{{ entry.secret if entry else '' }}" required></label>
+    <div class="form-grid">
+        <label>Digits
+            <select name="digits">
+                <option value="6" {% if not entry or entry.digits == 6 %}selected{% endif %}>6</option>
+                <option value="8" {% if entry and entry.digits == 8 %}selected{% endif %}>8</option>
+            </select>
+        </label>
+        <label>Period
+            <select name="period">
+                <option value="30" {% if not entry or entry.period == 30 %}selected{% endif %}>30 seconds</option>
+                <option value="60" {% if entry and entry.period == 60 %}selected{% endif %}>60 seconds</option>
+            </select>
+        </label>
+    </div>
+    <label>Algorithm
+        <select name="algorithm">
+            <option value="SHA1" {% if not entry or entry.algorithm == 'SHA1' %}selected{% endif %}>SHA1</option>
+            <option value="SHA256" {% if entry and entry.algorithm == 'SHA256' %}selected{% endif %}>SHA256</option>
+            <option value="SHA512" {% if entry and entry.algorithm == 'SHA512' %}selected{% endif %}>SHA512</option>
+        </select>
+    </label>
+    <label>Notes<textarea name="notes" rows="4">{{ entry.notes if entry else '' }}</textarea></label>
+    <div class="form-actions">
+        <button class="button primary" type="submit">Save OTP</button>
+        <a class="button ghost" href="{{ url_for('totp_accounts') }}">Cancel</a>
+    </div>
+</form>
+{% endblock %}

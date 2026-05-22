@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Unlock SecureVault{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+    <form class="auth-card" method="post">
+        <div class="auth-mark">SV</div>
+        <p class="eyebrow">Welcome back</p>
+        <h1>Unlock SecureVault</h1>
+        <p class="muted">Enter your master password to decrypt this local vault.</p>
+        {% if password_hint %}
+        <div class="hint-box"><strong>Hint:</strong> {{ password_hint }}</div>
+        {% endif %}
+        <label>
+            Master password
+            <input type="password" name="master_password" autocomplete="current-password" required autofocus>
+        </label>
+        <button class="button primary full" type="submit">Unlock Vault</button>
+        <a class="button ghost full" href="{{ url_for('recover') }}">Use Recovery Phrase</a>
+    </form>
+</section>
+{% endblock %}

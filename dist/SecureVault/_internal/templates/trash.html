@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Trash - SecureVault{% endblock %}
+{% block heading %}Trash{% endblock %}
+{% block content %}
+<section class="table-panel">
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Deleted</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+            <tr>
+                <td>{{ entry.title }}</td>
+                <td>{{ entry.item_type.replace('_', ' ').title() }}</td>
+                <td>{{ entry.deleted_at }}</td>
+                <td class="row-actions">
+                    <form method="post" action="{{ url_for('restore_trash', item_id=entry.id) }}">
+                        <button class="button small" type="submit">Restore</button>
+                    </form>
+                    <form method="post" action="{{ url_for('purge_trash', item_id=entry.id) }}" data-confirm="Permanently delete this item? This cannot be undone.">
+                        <button class="button small danger" type="submit">Delete Forever</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="empty">Trash is empty.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

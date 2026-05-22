@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - SecureVault{% endblock %}
+{% block heading %}Dashboard{% endblock %}
+{% block content %}
+<section class="grid stats-grid">
+    <article class="stat-card"><span>{{ stats.passwords }}</span><p>Passwords</p></article>
+    <article class="stat-card"><span>{{ stats.totp }}</span><p>OTP</p></article>
+    <article class="stat-card"><span>{{ stats.notes }}</span><p>Secure Notes</p></article>
+    <article class="stat-card"><span>{{ stats.financial }}</span><p>Records</p></article>
+    <article class="stat-card"><span>{{ stats.documents }}</span><p>Documents</p></article>
+    <article class="stat-card"><span>{{ stats.backups }}</span><p>Backups</p></article>
+</section>
+
+<section class="split">
+    <article class="panel">
+        <div class="panel-head">
+            <h2>Recent Passwords</h2>
+            <a class="button small" href="{{ url_for('add_password') }}">Add</a>
+        </div>
+        <div class="list">
+            {% for item in recent_passwords %}
+            <a href="{{ url_for('edit_password', entry_id=item.id) }}" class="list-row">
+                <span class="mini-entry-icon">{{ (item.title or "P")[0]|upper }}</span>
+                <span>
+                    <strong>{{ item.title }}</strong>
+                    <small>{{ item.username or "No username" }}</small>
+                </span>
+            </a>
+            {% else %}
+            <p class="empty">No passwords saved yet.</p>
+            {% endfor %}
+        </div>
+    </article>
+    <article class="panel">
+        <div class="panel-head">
+            <h2>Recent Notes</h2>
+            <a class="button small" href="{{ url_for('add_note') }}">Add</a>
+        </div>
+        <div class="list">
+            {% for item in recent_notes %}
+            <a href="{{ url_for('edit_note', note_id=item.id) }}" class="list-row">
+                <span class="mini-entry-icon note-mini">{{ (item.title or "N")[0]|upper }}</span>
+                <span>
+                    <strong>{{ item.title }}</strong>
+                    <small>{{ item.category or "Private" }}</small>
+                </span>
+            </a>
+            {% else %}
+            <p class="empty">No secure notes saved yet.</p>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+{% endblock %}

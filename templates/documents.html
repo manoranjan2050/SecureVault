@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Documents - SecureVault{% endblock %}
+{% block heading %}Documents{% endblock %}
+{% block content %}
+<form class="upload-panel" method="post" enctype="multipart/form-data">
+    <div>
+        <h2>Encrypted Document Vault</h2>
+        <p class="muted">Upload PDFs, images, certificates, or identity documents. Files are encrypted before saving.</p>
+    </div>
+    <input type="file" name="document" required>
+    <button class="button primary" type="submit">Encrypt Upload</button>
+</form>
+
+<section class="table-panel">
+    <table>
+        <thead>
+            <tr>
+                <th>File</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Saved</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+            <tr>
+                <td>{{ entry.filename }}</td>
+                <td>{{ entry.mime_type or "Unknown" }}</td>
+                <td>{{ (entry.file_size / 1024)|round(1) }} KB</td>
+                <td>{{ entry.created_at }}</td>
+                <td class="row-actions">
+                    {% if entry.mime_type == "application/pdf" or entry.mime_type.startswith("image/") %}
+                    <a class="button small ghost" href="{{ url_for('preview_document', doc_id=entry.id) }}" target="_blank" rel="noreferrer">Preview</a>
+                    {% endif %}
+                    <a class="button small" href="{{ url_for('download_document', doc_id=entry.id) }}">Download</a>
+                    <form method="post" action="{{ url_for('delete_document', doc_id=entry.id) }}" data-confirm="Delete this document?">
+                        <button class="button small danger" type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="empty">No documents uploaded yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

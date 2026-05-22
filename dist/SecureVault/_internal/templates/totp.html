@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Authenticator - SecureVault{% endblock %}
+{% block heading %}Authenticator{% endblock %}
+{% block content %}
+<section class="toolbar">
+    <form method="get" class="search">
+        <input type="search" name="q" value="{{ search }}" placeholder="Search issuer or account">
+    </form>
+    <a class="button primary" href="{{ url_for('add_totp') }}">Add OTP</a>
+</section>
+
+<section class="cards">
+    {% for entry in entries %}
+    <article class="vault-card otp-card">
+        <div class="card-head">
+            <div class="title-group">
+                <span class="entry-icon icon-otp">{{ (entry.issuer or entry.account_name or "O")[0]|upper }}</span>
+                <div>
+                    <h2>{{ entry.issuer or "Authenticator" }}</h2>
+                    <p>{{ entry.account_name }}</p>
+                </div>
+            </div>
+            <span class="tag">{{ entry.seconds_left }}s</span>
+        </div>
+        <div class="otp-code" data-copy="{{ entry.code }}">{{ entry.code }}</div>
+        {% if entry.notes %}<p class="notes-preview">{{ entry.notes }}</p>{% endif %}
+        <div class="card-actions">
+            <button class="button small ghost" data-copy="{{ entry.code }}">Copy Code</button>
+            <a class="button small" href="{{ url_for('edit_totp', entry_id=entry.id) }}">Edit</a>
+            <form method="post" action="{{ url_for('delete_totp', entry_id=entry.id) }}" data-confirm="Delete this OTP account?">
+                <button class="button small danger" type="submit">Delete</button>
+            </form>
+        </div>
+    </article>
+    {% else %}
+    <p class="empty">No OTP accounts saved yet.</p>
+    {% endfor %}
+</section>
+{% endblock %}

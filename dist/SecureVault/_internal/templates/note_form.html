@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Secure Note - SecureVault{% endblock %}
+{% block heading %}{{ "Edit Note" if entry else "Add Note" }}{% endblock %}
+{% block content %}
+<form class="form-panel" method="post">
+    <label>Title<input name="title" value="{{ entry.title if entry else '' }}" required autofocus></label>
+    <label>Category<input name="category" value="{{ entry.category if entry else '' }}" placeholder="Bank, API, Recovery, Personal"></label>
+    <label>Content<textarea name="content" rows="10" required>{{ entry.content if entry else '' }}</textarea></label>
+    <div class="form-actions">
+        <button class="button primary" type="submit">Save Securely</button>
+        <a class="button ghost" href="{{ url_for('notes') }}">Cancel</a>
+    </div>
+</form>
+{% endblock %}

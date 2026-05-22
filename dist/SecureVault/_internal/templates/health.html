@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Vault Health - SecureVault{% endblock %}
+{% block heading %}Vault Health{% endblock %}
+{% block content %}
+<section class="grid stats-grid">
+    <article class="stat-card"><span>{{ report.total_passwords }}</span><p>Total Passwords</p></article>
+    <article class="stat-card"><span>{{ report.weak_passwords }}</span><p>Weak Passwords</p></article>
+    <article class="stat-card"><span>{{ report.duplicate_passwords }}</span><p>Duplicates</p></article>
+    <article class="stat-card"><span>{{ report.old_passwords }}</span><p>Old Passwords</p></article>
+    <article class="stat-card"><span>{{ report.missing_2fa }}</span><p>Missing 2FA Tag</p></article>
+</section>
+<section class="panel">
+    <h2>Suggestions</h2>
+    <div class="list">
+        <p class="list-row">Use unique passwords for each site.</p>
+        <p class="list-row">Add `2FA` or `TOTP` in tags for accounts protected by two-factor login.</p>
+        <p class="list-row">Update old passwords every 6-12 months for important accounts.</p>
+        <p class="list-row">Keep at least one encrypted `.svault` backup outside your PC.</p>
+    </div>
+</section>
+{% endblock %}

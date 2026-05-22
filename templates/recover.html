@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Recover SecureVault{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+    <form class="auth-card" method="post">
+        <div class="auth-mark">SV</div>
+        <p class="eyebrow">Offline recovery</p>
+        <h1>Recover Vault</h1>
+        <p class="muted">Use your printed recovery phrase to set a new master password.</p>
+        <label>Recovery phrase<input name="recovery_phrase" required autofocus></label>
+        <label>New master password<input type="password" name="new_password" minlength="10" required></label>
+        <label>Confirm new password<input type="password" name="confirm_password" minlength="10" required></label>
+        <button class="button primary full" type="submit">Recover Vault</button>
+        <a class="button ghost full" href="{{ url_for('login') }}">Back to Login</a>
+    </form>
+</section>
+{% endblock %}

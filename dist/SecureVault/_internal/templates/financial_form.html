@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ type_config.label }} - SecureVault{% endblock %}
+{% block heading %}{{ "Edit" if entry else "Add" }} {{ type_config.label }}{% endblock %}
+{% block content %}
+<form class="form-panel wide-form" method="post">
+    <label class="check-row">
+        <input type="checkbox" name="favorite" {% if entry and entry.favorite %}checked{% endif %}>
+        Mark as important / favorite
+    </label>
+    <div class="form-grid">
+        {% for field_name, label, field_type in type_config.fields %}
+        <label class="{% if field_type == 'textarea' %}span-2{% endif %}">
+            {{ label }}
+            {% if field_type == 'textarea' %}
+            <textarea name="{{ field_name }}" rows="4">{{ entry.data[field_name] if entry else '' }}</textarea>
+            {% else %}
+            <input name="{{ field_name }}" type="{{ field_type }}" value="{{ entry.data[field_name] if entry else '' }}">
+            {% endif %}
+        </label>
+        {% endfor %}
+    </div>
+    <div class="form-actions">
+        <button class="button primary" type="submit">Save Securely</button>
+        <a class="button ghost" href="{{ url_for('financial_accounts') }}">Cancel</a>
+    </div>
+</form>
+{% endblock %}

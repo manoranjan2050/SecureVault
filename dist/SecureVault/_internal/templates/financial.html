@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Records Vault - SecureVault{% endblock %}
+{% block heading %}Records Vault{% endblock %}
+{% block content %}
+<section class="toolbar stacked-toolbar">
+    <form method="get" class="filter-panel">
+        <input type="search" name="q" value="{{ search }}" placeholder="Search bank, demat, trading, insurance, UPI, license, mobile">
+        <select name="type">
+            <option value="" {% if not selected_type %}selected{% endif %}>All record types</option>
+            {% for account_type, config in account_types.items() %}
+            <option value="{{ account_type }}" {% if selected_type == account_type %}selected{% endif %}>{{ config.label }}</option>
+            {% endfor %}
+        </select>
+        <label class="mini-check"><input type="checkbox" name="favorite" value="1" {% if favorites_only %}checked{% endif %}> Important</label>
+        <button class="button ghost" type="submit">Filter</button>
+        <a class="button ghost" href="{{ url_for('financial_accounts') }}">Reset</a>
+    </form>
+    <div class="button-row">
+        {% for account_type, config in account_types.items() %}
+        <a class="button primary" href="{{ url_for('add_financial_account', account_type=account_type) }}">Add {{ config.label }}</a>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="cards">
+    {% for entry in entries %}
+    <article class="vault-card">
+        <div class="card-head">
+            <div class="title-group">
+                <span class="entry-icon record-icon record-{{ entry.account_type }}">{{ entry.type_label[0] }}</span>
+                <div>
+                    <h2>{{ entry.title }}</h2>
+                    <p>{{ entry.subtitle }}</p>
+                </div>
+            </div>
+            <span class="tag">{{ "Important" if entry.favorite else entry.type_label }}</span>
+        </div>
+        <div class="detail-grid">
+            {% for key, value in entry.data.items() %}
+                {% if value %}
+                <div class="detail-item">
+                    <small>{{ key.replace('_', ' ').title() }}</small>
+                    {% if 'password' in key or 'pin' in key or 'cvv' in key or 'totp' in key or 'secret' in key or 'phrase' in key or 'private_key' in key or 'puk' in key or 'license_key' in key %}
+                    <div class="secret-line compact">
+                        <input class="secret-input" type="password" value="{{ value }}" readonly>
+                        <button class="button small ghost" data-reveal>Show</button>
+                        <button class="button small ghost" data-copy="{{ value }}">Copy</button>
+                    </div>
+                    {% else %}
+                    <strong>{{ value }}</strong>
+                    <button class="button small ghost" data-copy="{{ value }}">Copy</button>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <div class="card-actions">
+            <a class="button small" href="{{ url_for('edit_financial_account', entry_id=entry.id) }}">Edit</a>
+            <form method="post" action="{{ url_for('delete_financial_account', entry_id=entry.id) }}" data-confirm="Delete this record?">
+                <button class="button small danger" type="submit">Delete</button>
+            </form>
+        </div>
+    </article>
+    {% else %}
+    <p class="empty">No records saved yet.</p>
+    {% endfor %}
+</section>
+{% endblock %}
