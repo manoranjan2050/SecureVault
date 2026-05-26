@@ -21,6 +21,7 @@ from PIL import Image
 from urllib.parse import parse_qs, urlparse, unquote
 from zipfile import ZIP_DEFLATED, ZipFile
 
+import requests
 from argon2.low_level import Type, hash_secret_raw
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -1085,6 +1086,97 @@ def create_app() -> Flask:
         log_audit("backup", f"Backup exported: {backup_path.name}")
         return send_file(backup_path, as_attachment=True, download_name=backup_path.name)
 
+    @app.route("/backup/telegram")
+    def telegram_backup():
+        key = require_key()
+        bot_token = get_config_text("telegram_bot_token", "").strip()
+        chat_id = get_config_text("telegram_chat_id", "").strip()
+        
+        if not bot_token or not chat_id:
+            flash("Configure Telegram Bot Token and Chat ID in Settings first.", "error")
+            return redirect(url_for("settings"))
+            
+        try:
+            # Create fresh backup
+            backup_path = create_backup_file(key)
+            
+            # Send to Telegram
+            url = f"https://api.telegram.org/bot{bot_token}/sendDocument"
+            with open(backup_path, 'rb') as f:
+                files = {'document': f}
+                data = {'chat_id': chat_id, 'caption': f"📦 SecureVault Elite Backup\n📅 {now_iso()}\n🔒 Encrypted AES-256"}
+                response = requests.post(url, data=data, files=files, timeout=60)
+                
+            if response.status_code == 200:
+                log_audit("telegram_backup", f"Vault exported to Telegram Cloud: {backup_path.name}")
+                flash("Vault successfully backed up to Telegram Cloud!", "success")
+            else:
+                flash(f"Telegram API Error: {response.text}", "error")
+                
+        except Exception as e:
+            flash(f"Cloud backup failed: {str(e)}", "error")
+            
+        return redirect(url_for("settings"))
+
+    @app.route("/backup/github")
+    def github_backup():
+        key = require_key()
+        gh_token = get_config_text("github_token", "").strip()
+        gh_repo = get_config_text("github_repo", "").strip() # Format: username/repo
+        
+        if not gh_token or not gh_repo:
+            flash("Configure GitHub Token and Repo (user/repo) in Settings first.", "error")
+            return redirect(url_for("settings"))
+            
+        try:
+            backup_path = create_backup_file(key)
+            content = base64.b64encode(backup_path.read_bytes()).decode('ascii')
+            filename = backup_path.name
+            
+            url = f"https://api.github.com/repos/{gh_repo}/contents/backups/{filename}"
+            headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
+            data = {"message": f"Vault Backup {now_iso()}", "content": content}
+            
+            response = requests.put(url, headers=headers, json=data, timeout=60)
+            if response.status_code in [200, 201]:
+                log_audit("github_backup", f"Vault pushed to GitHub: {filename}")
+                flash("Vault successfully synced to GitHub Private Repo!", "success")
+            else:
+                flash(f"GitHub API Error: {response.text}", "error")
+        except Exception as e:
+            flash(f"GitHub backup failed: {str(e)}", "error")
+        return redirect(url_for("settings"))
+
+    @app.route("/backup/dropbox")
+    def dropbox_backup():
+        key = require_key()
+        dbx_token = get_config_text("dropbox_token", "").strip()
+        
+        if not dbx_token:
+            flash("Configure Dropbox Access Token in Settings first.", "error")
+            return redirect(url_for("settings"))
+            
+        try:
+            backup_path = create_backup_file(key)
+            filename = backup_path.name
+            
+            url = "https://content.dropboxapi.com/2/files/upload"
+            headers = {
+                "Authorization": f"Bearer {dbx_token}",
+                "Dropbox-API-Arg": json.dumps({"path": f"/SecureVault/{filename}", "mode": "add", "autorename": True, "mute": False}),
+                "Content-Type": "application/octet-stream"
+            }
+            
+            response = requests.post(url, headers=headers, data=backup_path.read_bytes(), timeout=60)
+            if response.status_code == 200:
+                log_audit("dropbox_backup", f"Vault uploaded to Dropbox: {filename}")
+                flash("Vault successfully synced to Dropbox!", "success")
+            else:
+                flash(f"Dropbox API Error: {response.text}", "error")
+        except Exception as e:
+            flash(f"Dropbox backup failed: {str(e)}", "error")
+        return redirect(url_for("settings"))
+
     @app.route("/settings", methods=["GET", "POST"])
     def settings():
         key = require_key()
@@ -1094,6 +1186,11 @@ def create_app() -> Flask:
             set_config_value("session_timeout_seconds", request.form.get("session_timeout_seconds", "900"))
             set_config_value("auto_backup_enabled", "1" if request.form.get("auto_backup_enabled") else "0")
             set_config_value("lock_on_blur", "1" if request.form.get("lock_on_blur") else "0")
+            set_config_value("telegram_bot_token", request.form.get("telegram_bot_token", "").strip())
+            set_config_value("telegram_chat_id", request.form.get("telegram_chat_id", "").strip())
+            set_config_value("github_token", request.form.get("github_token", "").strip())
+            set_config_value("github_repo", request.form.get("github_repo", "").strip())
+            set_config_value("dropbox_token", request.form.get("dropbox_token", "").strip())
             log_audit("settings", "Security settings updated")
             flash("Settings saved.", "success")
             return redirect(url_for("settings"))
@@ -1105,6 +1202,11 @@ def create_app() -> Flask:
             session_timeout_seconds=str(get_session_timeout_seconds()),
             auto_backup_enabled=get_config_text("auto_backup_enabled", "1") == "1",
             lock_on_blur=get_config_text("lock_on_blur", "0") == "1",
+            telegram_bot_token=get_config_text("telegram_bot_token", ""),
+            telegram_chat_id=get_config_text("telegram_chat_id", ""),
+            github_token=get_config_text("github_token", ""),
+            github_repo=get_config_text("github_repo", ""),
+            dropbox_token=get_config_text("dropbox_token", ""),
         )
 
     @app.route("/restore", methods=["POST"])

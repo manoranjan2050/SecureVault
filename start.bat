@@ -13,6 +13,7 @@ echo =================================================================
 echo.
 echo    SECUREVAULT (ELITE EDITION) v2.0.0
 echo    Advanced Local Encryption ^& Digital Asset Management
+echo    By MANORANJAN2050
 echo.
 echo =================================================================
 echo.

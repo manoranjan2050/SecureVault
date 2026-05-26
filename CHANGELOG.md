@@ -2,47 +2,37 @@
 
 All notable changes to **SecureVault** will be documented in this file.
 
-## [2.1.0-Elite] - 2026-05-25
+## [2.2.0-Elite] - 2026-05-25
 ### Added
-- **Panic Mode Protocol:** Emergency system override to instantly move all data to trash and lock the vault.
+- **Multi-Cloud Redundancy:** Native integration for GitHub Private Repository and Dropbox direct sync backups.
+- **Telegram Cloud Sync:** One-click encrypted export to private Telegram chats.
+- **Panic Mode Protocol:** Emergency system override to instantly move all active data to trash and lock the vault.
 - **Ephemeral Secret Sharing:** Generate one-time, encrypted links to share sensitive data securely.
-- **Security Score Analytics:** Integrated Chart.js donut on dashboard showing vault integrity (Strong vs Weak keys).
+- **Security Score Analytics:** Integrated Chart.js donut on dashboard showing vault integrity.
 - **Document Categorization:** Professional folder-style management for secure files (Finance, ID, Legal, etc.).
 - **Privacy Shield (Auto-Lock):** New security setting to automatically lock the vault when switching browser tabs or minimizing the window.
-- **Hidden Override Trigger:** Discreet panic button integrated into the developer signature area.
 
 ### Changed
-- **Dashboard Refinement:** Redesigned layout with integrated security analytics and panic controls.
-- **Document Registry:** Enhanced table view with category signatures and improved file type icons.
+- **Settings UI:** Redesigned configuration hub with dedicated panels for Cloud Sync, Recovery, and System Parameters.
+- **Dashboard Hub:** Enhanced with real-time security score and high-density stats matrix.
+- **Document Vault:** Upgraded registry table with category signatures and smart file-type icons.
+
+### Fixed
+- Improved TOTP secret validation to handle unpadded Base32 strings.
+- Fixed virtual environment pathing errors in Windows startup script.
 
 ---
 
 ## [2.0.0-Elite] - 2026-05-25
 ### Added
-- **Premium UI Revamp:** Full transition to Tailwind CSS with a modern Glassmorphism aesthetic.
-- **QR Code Batch Import:** Support for Google Authenticator Migration QR codes and standard TOTP links.
-- **Enhanced Password Fields:** Added dedicated storage for Email ID and Mobile No within password entries.
-- **Visual Strength Meter:** Real-time entropy check with color-coded security levels (Critical to Elite).
-- **Master Startup Script:** Re-engineered `start.bat` with auto-venv recovery and automated browser launching.
-- **Security Ledger:** Branded audit log and secure system event tracking.
-- **Self-Destruct Queue:** Advanced trash management system with object restoration.
-- **Session Hardening:** Automatic inactivity logout after 1 hour to prevent unauthorized access.
-- **Developer Branding:** Integrated GitHub profile and website links on setup and login pages.
-
-### Changed
-- **TOTP Engine:** Improved secret validation to handle unpadded Base32 strings automatically.
-- **Responsive Design:** Optimized every view for high-end mobile and tablet experiences.
-- **Flash Messaging:** Modernized notification system with animated slide-in alerts.
-
-### Fixed
-- Resolved "Invalid TOTP Secret" errors caused by missing padding in standard authenticator exports.
-- Fixed virtual environment activation pathing issues in Windows environments.
-- Corrected logic where certain data fields were hidden during tab transitions.
+- **Premium UI Revamp:** Full transition to Tailwind CSS with Glassmorphism aesthetic.
+- **QR Code Batch Import:** Support for Google Authenticator Migration QR codes.
+- **Enhanced Password Fields:** Added Email ID and Mobile No storage.
+- **Visual Strength Meter:** Real-time entropy check.
+- **Developer Branding:** Integrated GitHub identity and website links.
 
 ---
 
 ## [1.0.0] - Pre-Elite Edition
 - Initial Flask implementation with AES-256-GCM encryption.
-- Basic Password, Notes, and Document storage.
-- Recovery phrase system.
-- Audit logging.
+- Basic storage and recovery phrase system.

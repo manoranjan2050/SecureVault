@@ -5,3 +5,5 @@ opencv-python-headless
 numpy<2.0.0
 Pillow
 protobuf==5.26.1
+requests
+
