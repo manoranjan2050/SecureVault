@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Secret Ready - SecureVault{% endblock %}
+{% block heading %}Secure Link Generated{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto animate-in zoom-in duration-300">
+    <div class="glass p-8 md:p-12 rounded-[3.5rem] border-white/5 relative overflow-hidden">
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-green-600/10 rounded-full blur-3xl"></div>
+
+        <div class="mb-10 text-center">
+            <div class="w-20 h-20 rounded-2xl bg-green-600 mx-auto flex items-center justify-center text-white text-3xl shadow-xl shadow-green-500/20 mb-6">
+                <i class="fa-solid fa-link"></i>
+            </div>
+            <h2 class="text-3xl font-black text-white leading-none mb-4 tracking-tight">Node Address Ready</h2>
+            <p class="text-xs text-slate-500 font-medium leading-relaxed max-w-sm mx-auto">
+                Copy the link below and share it. It contains the <span class="text-green-400 font-bold">encryption key in the fragment (#)</span>, meaning the key never touches the server.
+            </p>
+        </div>
+
+        <div class="space-y-6">
+            <div class="p-6 bg-slate-950/50 border border-white/5 rounded-3xl flex items-center justify-between gap-4">
+                <input type="text" value="{{ link }}" readonly class="bg-transparent border-none text-blue-400 text-sm font-mono w-full focus:outline-none select-all" id="shareLink">
+                <button class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black tracking-widest transition shadow-lg whitespace-nowrap"
+                        onclick="copyLink()">
+                    <i class="fa-solid fa-copy mr-2"></i> COPY LINK
+                </button>
+            </div>
+            
+            <div class="p-6 bg-orange-600/10 border border-orange-500/20 rounded-[2rem] flex items-start gap-4">
+                <i class="fa-solid fa-triangle-exclamation text-orange-500 mt-1"></i>
+                <p class="text-xs text-orange-400/80 leading-relaxed italic">
+                    The link will expire in 60 minutes or after the first successful decryption.
+                </p>
+            </div>
+        </div>
+
+        <div class="mt-10 pt-10 border-t border-white/5 text-center">
+            <a class="px-8 py-3 bg-slate-900/50 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl text-xs font-black tracking-widest transition border border-white/5 uppercase" 
+               href="{{ url_for('notes') }}">
+                Return to Vault
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyLink() {
+        const input = document.getElementById('shareLink');
+        input.select();
+        document.execCommand('copy');
+        alert('Secure link copied to clipboard!');
+    }
+</script>
+{% endblock %}

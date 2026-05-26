@@ -2,6 +2,21 @@
 
 All notable changes to **SecureVault** will be documented in this file.
 
+## [2.1.0-Elite] - 2026-05-25
+### Added
+- **Panic Mode Protocol:** Emergency system override to instantly move all data to trash and lock the vault.
+- **Ephemeral Secret Sharing:** Generate one-time, encrypted links to share sensitive data securely.
+- **Security Score Analytics:** Integrated Chart.js donut on dashboard showing vault integrity (Strong vs Weak keys).
+- **Document Categorization:** Professional folder-style management for secure files (Finance, ID, Legal, etc.).
+- **Privacy Shield (Auto-Lock):** New security setting to automatically lock the vault when switching browser tabs or minimizing the window.
+- **Hidden Override Trigger:** Discreet panic button integrated into the developer signature area.
+
+### Changed
+- **Dashboard Refinement:** Redesigned layout with integrated security analytics and panic controls.
+- **Document Registry:** Enhanced table view with category signatures and improved file type icons.
+
+---
+
 ## [2.0.0-Elite] - 2026-05-25
 ### Added
 - **Premium UI Revamp:** Full transition to Tailwind CSS with a modern Glassmorphism aesthetic.

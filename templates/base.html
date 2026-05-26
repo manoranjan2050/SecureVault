@@ -56,6 +56,9 @@
                 <a href="{{ url_for('documents') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if request.endpoint == 'documents' %}active{% else %}text-slate-400 hover:text-white{% endif %}">
                     <i class="fa-solid fa-file-shield w-5"></i> Documents
                 </a>
+                <a href="{{ url_for('share_message') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if 'share' in request.endpoint %}active{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-paper-plane w-5 text-blue-400"></i> Share Secret
+                </a>
                 <div class="h-px bg-white/5 my-4 mx-4"></div>
                 <a href="{{ url_for('trash') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if request.endpoint == 'trash' %}active{% else %}text-slate-400 hover:text-white{% endif %}">
                     <i class="fa-solid fa-trash-can w-5"></i> Trash
@@ -78,8 +81,10 @@
                 <a href="{{ url_for('lock') }}" class="flex items-center justify-center gap-2 w-full py-3 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-xl font-bold text-xs transition border border-red-500/20">
                     <i class="fa-solid fa-lock"></i> LOCK VAULT
                 </a>
-                <div class="text-center pt-2">
+                <div class="text-center pt-2 relative group/panic">
                     <p class="text-[10px] text-slate-500">SecureVault by <a href="https://github.com/manoranjan2050" class="text-blue-500 hover:underline">Manoranjan</a></p>
+                    <!-- Hidden Panic Trigger: Clickable invisible area -->
+                    <button onclick="togglePanic()" class="absolute inset-0 w-full h-full opacity-0 cursor-default" title="System Integrity Override"></button>
                 </div>
             </div>
         </aside>
@@ -152,6 +157,26 @@
                 overlay.classList.add('hidden');
             });
         }
+
+        function togglePanic() {
+            const zone = document.getElementById('panic-zone');
+            if(zone) {
+                zone.classList.toggle('hidden');
+                zone.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                // If not on dashboard, just lock as a safety fallback
+                window.location.href = "{{ url_for('lock') }}";
+            }
+        }
+
+        // Privacy Shield: Auto-lock on blur
+        {% if lock_on_blur and configured and request.endpoint not in ['login', 'setup', 'recover'] %}
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                window.location.href = "{{ url_for('lock') }}";
+            }
+        });
+        {% endif %}
     </script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

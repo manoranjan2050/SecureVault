@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Share Secure Message - SecureVault{% endblock %}
+{% block heading %}Secure Message Generator{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto animate-in zoom-in duration-300">
+    <div class="glass p-8 md:p-12 rounded-[3.5rem] border-white/5 relative overflow-hidden">
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl"></div>
+
+        <div class="mb-10 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-blue-600 mx-auto flex items-center justify-center text-white text-2xl shadow-xl shadow-blue-500/20 mb-6">
+                <i class="fa-solid fa-paper-plane"></i>
+            </div>
+            <h2 class="text-2xl font-black text-white leading-none mb-4 tracking-tight uppercase italic">Ephemeral Secret Sharing</h2>
+            <p class="text-xs text-slate-500 font-medium leading-relaxed max-w-sm mx-auto">
+                Create an encrypted, <span class="text-blue-400 font-bold">one-time use</span> link to share sensitive data. The message is destroyed immediately after being read.
+            </p>
+        </div>
+
+        <form class="space-y-8" method="post">
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Confidential Payload</label>
+                <textarea name="content" rows="10" required
+                          class="w-full px-8 py-6 bg-slate-950/50 border border-white/5 rounded-[2.5rem] text-white font-mono text-sm leading-relaxed focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-800 scrollbar-hide"
+                          placeholder="Type your sensitive message here..."></textarea>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-4 pt-10 border-t border-white/5">
+                <button class="flex-1 py-5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-[2.5rem] shadow-2xl shadow-blue-500/20 transition-all transform active:scale-[0.98] uppercase tracking-[0.3em] text-xs" type="submit">
+                    GENERATE SECURE LINK
+                </button>
+                <a class="flex-1 py-5 bg-slate-900/50 hover:bg-slate-800 text-slate-400 hover:text-white font-black rounded-[2.5rem] text-center transition-all uppercase tracking-[0.3em] text-xs border border-white/5" 
+                   href="{{ url_for('notes') }}">
+                    CANCEL
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

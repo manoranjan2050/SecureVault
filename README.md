@@ -18,6 +18,11 @@ SecureVault is a premium, portable Flask-based application for secure offline st
 - **Live Real-time Sync:** Smoothly animated countdown timers and progress rings that refresh cryptographic codes automatically.
 - **Real-time Security Audit:** Color-coded entropy meter (from "Critical" to "Elite Protection") and system-wide health diagnostics.
 - **Interactive Command Center:** High-density dashboard with recent activity tracking and system-wide statistics.
+- **Privacy Shield:** Optional auto-lock protocol that triggers immediately when switching browser tabs or minimizing the window.
+- **Panic Mode Protocol:** A hidden emergency override that instantly moves all active data to the trash and locks the vault.
+- **Ephemeral Secret Sharing:** Integrated utility to create encrypted, one-time-use links for sharing sensitive information securely.
+- **Security Score Analytics:** Real-time Chart.js visualization of vault integrity and password health on the main dashboard.
+- **Categorized Document Cloud:** Professional file management with specialized categories for ID, Finance, and Legal assets.
 - **Authenticated Entry:** Industry-standard Argon2id key derivation and AES-256-GCM data sealing.
 - **Multi-Site Records Vault:** Specialized templates for Demat, Bank, Trading, Insurance, Mutual Funds, Crypto, and more.
 - **Secure Document Cloud:** Encrypted storage for PDFs and images with in-browser secure previewing.

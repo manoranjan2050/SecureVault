@@ -3,56 +3,92 @@
 {% block heading %}Vault Overview{% endblock %}
 {% block content %}
 <div class="space-y-10 animate-in fade-in duration-700">
-    <!-- Stats Grid -->
-    <section class="grid grid-cols-2 lg:grid-cols-6 gap-4 md:gap-6">
-        <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
-            <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                <i class="fa-solid fa-key"></i>
+    <!-- Panic Bar (Hidden by default) -->
+    <div id="panic-zone" class="hidden glass p-6 rounded-[2rem] border-red-500/30 bg-red-600/10 mb-8 animate-pulse">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/50">
+                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-black text-red-500 uppercase tracking-tighter">Emergency Purge Protocol</h3>
+                    <p class="text-xs text-red-400/70 font-bold uppercase tracking-widest leading-none">Confirm to move ALL data to trash and LOCK</p>
+                </div>
             </div>
-            <p class="text-3xl font-black text-white">{{ stats.passwords }}</p>
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Passwords</p>
-        </article>
-        
-        <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
-            <div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 mb-4 group-hover:bg-purple-500 group-hover:text-white transition-colors">
-                <i class="fa-solid fa-clock"></i>
+            <div class="flex gap-4 w-full md:w-auto">
+                <form method="post" action="{{ url_for('panic_mode') }}" class="flex-1">
+                    <button class="w-full px-8 py-3 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl text-xs uppercase tracking-widest transition shadow-lg" type="submit">EXECUTE PURGE</button>
+                </form>
+                <button onclick="togglePanic()" class="px-8 py-3 bg-slate-800 text-slate-400 rounded-xl text-xs font-bold uppercase tracking-widest">ABORT</button>
             </div>
-            <p class="text-3xl font-black text-white">{{ stats.totp }}</p>
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">OTP Keys</p>
+        </div>
+    </div>
+
+    <!-- Main Stats Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <!-- Health Chart -->
+        <article class="glass p-8 rounded-[2.5rem] border-white/5 flex flex-col items-center justify-center lg:col-span-1">
+            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6">Security Score</h3>
+            <div class="relative w-40 h-40">
+                <canvas id="healthChart"></canvas>
+                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span class="text-2xl font-black text-white leading-none">{{ ( (stats.health.total_passwords - stats.health.weak_passwords) / stats.health.total_passwords * 100 )|round|int if stats.health.total_passwords > 0 else 100 }}%</span>
+                    <span class="text-[8px] font-bold text-slate-500 uppercase">Integrity</span>
+                </div>
+            </div>
         </article>
 
-        <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
-            <div class="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500 mb-4 group-hover:bg-pink-500 group-hover:text-white transition-colors">
-                <i class="fa-solid fa-note-sticky"></i>
-            </div>
-            <p class="text-3xl font-black text-white">{{ stats.notes }}</p>
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Secure Notes</p>
-        </article>
+        <!-- Stats Matrix -->
+        <div class="lg:col-span-3 grid grid-cols-2 md:grid-cols-3 gap-6">
+            <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
+                <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <p class="text-3xl font-black text-white">{{ stats.passwords }}</p>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Passwords</p>
+            </article>
+            
+            <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
+                <div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 mb-4 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <p class="text-3xl font-black text-white">{{ stats.totp }}</p>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">OTP Keys</p>
+            </article>
 
-        <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
-            <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 mb-4 group-hover:bg-orange-500 group-hover:text-white transition-colors">
-                <i class="fa-solid fa-wallet"></i>
-            </div>
-            <p class="text-3xl font-black text-white">{{ stats.financial }}</p>
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Records</p>
-        </article>
+            <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
+                <div class="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500 mb-4 group-hover:bg-pink-500 group-hover:text-white transition-colors">
+                    <i class="fa-solid fa-note-sticky"></i>
+                </div>
+                <p class="text-3xl font-black text-white">{{ stats.notes }}</p>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Secure Notes</p>
+            </article>
 
-        <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
-            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 mb-4 group-hover:bg-cyan-500 group-hover:text-white transition-colors">
-                <i class="fa-solid fa-file-shield"></i>
-            </div>
-            <p class="text-3xl font-black text-white">{{ stats.documents }}</p>
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Documents</p>
-        </article>
+            <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
+                <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 mb-4 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <p class="text-3xl font-black text-white">{{ stats.financial }}</p>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Records</p>
+            </article>
 
-        <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
-            <div class="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500 mb-4 group-hover:bg-green-500 group-hover:text-white transition-colors">
-                <i class="fa-solid fa-cloud-arrow-up"></i>
-            </div>
-            <p class="text-3xl font-black text-white">{{ stats.backups }}</p>
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Backups</p>
-        </article>
-    </section>
+            <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
+                <div class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 mb-4 group-hover:bg-cyan-500 group-hover:text-white transition-colors">
+                    <i class="fa-solid fa-file-shield"></i>
+                </div>
+                <p class="text-3xl font-black text-white">{{ stats.documents }}</p>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Documents</p>
+            </article>
+
+            <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
+                <div class="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500 mb-4 group-hover:bg-green-500 group-hover:text-white transition-colors">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+                <p class="text-3xl font-black text-white">{{ stats.backups }}</p>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Backups</p>
+            </article>
+        </div>
+    </div>
 
     <!-- Recent Items Split View -->
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -139,5 +175,34 @@
         </article>
     </section>
 </div>
-{% endblock %}
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    function togglePanic() {
+        document.getElementById('panic-zone').classList.toggle('hidden');
+    }
+
+    // Health Donut Chart
+    const ctx = document.getElementById('healthChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Strong', 'Weak', 'Duplicates'],
+            datasets: [{
+                data: [
+                    {{ stats.health.total_passwords - stats.health.weak_passwords - stats.health.duplicate_passwords }},
+                    {{ stats.health.weak_passwords }},
+                    {{ stats.health.duplicate_passwords }}
+                ],
+                backgroundColor: ['#22c55e', '#ef4444', '#f59e0b'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            cutout: '80%',
+            plugins: { legend: { display: false } }
+        }
+    });
+</script>
+{% endblock %}

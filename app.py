@@ -337,6 +337,7 @@ def create_app() -> Flask:
         return {
             "configured": is_configured(),
             "current_year": datetime.now().year,
+            "lock_on_blur": get_config_text("lock_on_blur", "0") == "1",
         }
 
     @app.route("/", methods=["GET", "POST"])
@@ -466,14 +467,16 @@ def create_app() -> Flask:
 
     @app.route("/dashboard")
     def dashboard():
-        require_key()
+        key = require_key()
+        health = vault_health_report(key)
         stats = {
-            "passwords": query_scalar("SELECT COUNT(*) FROM passwords"),
+            "passwords": health["total_passwords"],
             "notes": query_scalar("SELECT COUNT(*) FROM secure_notes"),
-            "documents": query_scalar("SELECT COUNT(*) FROM documents"),
-            "financial": query_scalar("SELECT COUNT(*) FROM financial_accounts"),
+            "documents": health["documents"],
+            "financial": health["records"],
             "totp": query_scalar("SELECT COUNT(*) FROM totp_accounts"),
             "backups": len(list(BACKUP_DIR.glob("*.svault"))),
+            "health": health
         }
         recent_passwords = fetch_all(
             "SELECT id, title, username, tags, updated_at FROM passwords ORDER BY updated_at DESC LIMIT 5"
@@ -487,6 +490,71 @@ def create_app() -> Flask:
             recent_passwords=recent_passwords,
             recent_notes=recent_notes,
         )
+
+    @app.route("/panic", methods=["POST"])
+    def panic_mode():
+        key = require_key()
+        # Move all items to trash
+        for row in fetch_all("SELECT * FROM passwords"):
+            move_to_trash(key, "password", row["title"], dict(row))
+        for row in fetch_all("SELECT * FROM secure_notes"):
+            move_to_trash(key, "secure_note", row["title"], dict(row))
+        for row in fetch_all("SELECT * FROM financial_accounts"):
+            data = decrypt_json(row["encrypted_data"], key)
+            move_to_trash(key, "financial_account", financial_title(row["account_type"], data), dict(row))
+        
+        execute("DELETE FROM passwords")
+        execute("DELETE FROM secure_notes")
+        execute("DELETE FROM financial_accounts")
+        
+        log_audit("panic_mode", "PANIC MODE TRIGGERED: All active entries moved to trash and vault locked.")
+        return redirect(url_for("lock"))
+
+    @app.route("/share", methods=["GET", "POST"])
+    def share_message():
+        key = require_key()
+        if request.method == "POST":
+            content = request.form.get("content", "").strip()
+            if not content:
+                flash("Message cannot be empty.", "error")
+                return redirect(url_for("share_message"))
+            
+            msg_id = secrets.token_urlsafe(16)
+            # Share key is independent of master key for safety
+            share_key = secrets.token_urlsafe(32).encode('ascii')[:32]
+            encrypted = encrypt_text(content, share_key)
+            
+            execute(
+                "INSERT INTO shared_messages (id, encrypted_content, expires_at) VALUES (?, ?, ?)",
+                (msg_id, encrypted, (time.time() + 3600)) # 1 hour expiry
+            )
+            
+            full_link = f"{request.host_url}view-shared/{msg_id}#{share_key.decode('ascii')}"
+            return render_template("share_result.html", link=full_link)
+            
+        return render_template("share_form.html")
+
+    @app.route("/view-shared/<msg_id>")
+    def view_shared(msg_id: str):
+        row = fetch_one("SELECT * FROM shared_messages WHERE id = ?", (msg_id,))
+        if not row:
+            return render_template("share_expired.html"), 404
+            
+        return render_template("share_view.html", msg_id=msg_id)
+
+    @app.route("/api/decrypt-shared/<msg_id>", methods=["POST"])
+    def decrypt_shared(msg_id: str):
+        row = fetch_one("SELECT * FROM shared_messages WHERE id = ?", (msg_id,))
+        if not row:
+            return json.dumps({"error": "Expired"}), 404
+            
+        share_key = request.json.get("key", "").encode('ascii')
+        try:
+            decrypted = decrypt_text(row["encrypted_content"], share_key)
+            execute("DELETE FROM shared_messages WHERE id = ?", (msg_id,))
+            return json.dumps({"content": decrypted})
+        except:
+            return json.dumps({"error": "Invalid Key"}), 403
 
     @app.route("/financial")
     def financial_accounts():
@@ -938,6 +1006,7 @@ def create_app() -> Flask:
                 flash("Choose a file first.", "error")
                 return redirect(url_for("documents"))
 
+            category = request.form.get("category", "Uncategorized").strip()
             original_name = Path(uploaded.filename).name
             data = uploaded.read()
             mime_type = uploaded.mimetype or guess_mime_type(original_name)
@@ -949,15 +1018,15 @@ def create_app() -> Flask:
             execute(
                 """
                 INSERT INTO documents
-                    (filename, stored_name, file_size, mime_type, created_at)
-                VALUES (?, ?, ?, ?, ?)
+                    (filename, stored_name, file_size, mime_type, category, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (original_name, stored_name, len(data), mime_type, now),
+                (original_name, stored_name, len(data), mime_type, category, now),
             )
             flash("Document encrypted and saved.", "success")
             return redirect(url_for("documents"))
 
-        rows = fetch_all("SELECT * FROM documents ORDER BY created_at DESC")
+        rows = fetch_all("SELECT * FROM documents ORDER BY category ASC, created_at DESC")
         return render_template("documents.html", entries=rows)
 
     @app.route("/documents/<int:doc_id>/download")
@@ -1024,6 +1093,7 @@ def create_app() -> Flask:
             set_config_value("backup_location", request.form.get("backup_location", "").strip())
             set_config_value("session_timeout_seconds", request.form.get("session_timeout_seconds", "900"))
             set_config_value("auto_backup_enabled", "1" if request.form.get("auto_backup_enabled") else "0")
+            set_config_value("lock_on_blur", "1" if request.form.get("lock_on_blur") else "0")
             log_audit("settings", "Security settings updated")
             flash("Settings saved.", "success")
             return redirect(url_for("settings"))
@@ -1034,6 +1104,7 @@ def create_app() -> Flask:
             backup_location=get_config_text("backup_location", ""),
             session_timeout_seconds=str(get_session_timeout_seconds()),
             auto_backup_enabled=get_config_text("auto_backup_enabled", "1") == "1",
+            lock_on_blur=get_config_text("lock_on_blur", "0") == "1",
         )
 
     @app.route("/restore", methods=["POST"])
@@ -1452,6 +1523,13 @@ def init_db() -> None:
                 deleted_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS shared_messages (
+                id TEXT PRIMARY KEY,
+                encrypted_content TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                view_count INTEGER DEFAULT 0
+            );
+
             CREATE TABLE IF NOT EXISTS password_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 password_id INTEGER NOT NULL,
@@ -1467,6 +1545,7 @@ def init_db() -> None:
         )
         ensure_column(db, "financial_accounts", "favorite", "INTEGER NOT NULL DEFAULT 0")
         ensure_column(db, "documents", "mime_type", "TEXT")
+        ensure_column(db, "documents", "category", "TEXT DEFAULT 'Uncategorized'")
         ensure_column(db, "passwords", "email_id", "TEXT")
         ensure_column(db, "passwords", "mobile_no", "TEXT")
         ensure_column(db, "password_history", "email_id", "TEXT")

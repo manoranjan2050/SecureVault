@@ -22,6 +22,14 @@
             </div>
             
             <div class="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                <select name="category" class="bg-slate-950/50 border border-white/5 rounded-2xl px-4 py-3 text-xs font-bold text-slate-400 focus:outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer w-full sm:w-40">
+                    <option value="Uncategorized">General</option>
+                    <option value="Personal ID">Personal ID</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Property">Property</option>
+                    <option value="Certificates">Certificates</option>
+                    <option value="Legal">Legal</option>
+                </select>
                 <input type="file" name="document" required 
                        class="w-full sm:w-auto text-xs text-slate-500 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-[10px] file:font-black file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer shadow-xl transition-all">
                 <button class="w-full sm:w-auto px-8 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-[10px] font-black tracking-[0.2em] transition transform active:scale-95" 
@@ -48,6 +56,7 @@
                 <thead>
                     <tr class="bg-slate-950/50 border-b border-white/5">
                         <th class="px-8 py-5 text-[10px] font-black text-slate-600 uppercase tracking-widest">Document Entity</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-600 uppercase tracking-widest">Category</th>
                         <th class="px-8 py-5 text-[10px] font-black text-slate-600 uppercase tracking-widest hidden md:table-cell">Mime Signature</th>
                         <th class="px-8 py-5 text-[10px] font-black text-slate-600 uppercase tracking-widest">Size</th>
                         <th class="px-8 py-5 text-[10px] font-black text-slate-600 uppercase tracking-widest hidden lg:table-cell">Sealed Date</th>
@@ -64,6 +73,9 @@
                                 </div>
                                 <span class="text-sm font-bold text-slate-200 truncate max-w-[200px]">{{ entry.filename }}</span>
                             </div>
+                        </td>
+                        <td class="px-8 py-6">
+                            <span class="px-2.5 py-1 rounded-lg bg-blue-600/10 text-[9px] font-black text-blue-400 uppercase tracking-widest border border-blue-500/20">{{ entry.category or "General" }}</span>
                         </td>
                         <td class="px-8 py-6 hidden md:table-cell">
                             <span class="text-[10px] font-mono text-slate-500 uppercase tracking-tighter">{{ entry.mime_type or "RAW_BYTES" }}</span>
