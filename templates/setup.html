@@ -6,57 +6,150 @@
         <!-- Decoration -->
         <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl"></div>
 
-        <div class="text-center mb-10">
-            <div class="w-20 h-20 rounded-[2rem] bg-blue-600 mx-auto flex items-center justify-center shadow-xl shadow-blue-500/20 mb-6 animate-pulse">
-                <i class="fa-solid fa-shield-halved text-white text-3xl"></i>
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 rounded-2xl bg-blue-600 mx-auto flex items-center justify-center shadow-xl shadow-blue-500/20 mb-6">
+                <i class="fa-solid fa-shield-halved text-white text-2xl"></i>
             </div>
-            <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">System Initialization</p>
-            <h1 class="text-4xl font-black text-white tracking-tighter">Create Your <span class="text-gradient">Vault</span></h1>
-            <p class="mt-4 text-xs text-slate-500 font-medium leading-relaxed max-w-sm mx-auto">
-                Define your master cryptographic key. This password is the <span class="text-blue-400 font-bold">only way</span> to decrypt your local data. It cannot be reset.
-            </p>
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Vault Initialization</p>
+            <h1 class="text-3xl font-black text-white tracking-tighter" id="setup-title">Secure<span class="text-gradient">Vault</span></h1>
         </div>
 
-        <form class="space-y-6" method="post">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Mode Toggle -->
+        <div class="flex p-1.5 bg-slate-950/50 rounded-2xl mb-8 border border-white/5 backdrop-blur-sm">
+            <button type="button" onclick="switchMode('create')" id="tab-create" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 bg-blue-600 text-white shadow-lg">Create New</button>
+            <button type="button" onclick="switchMode('restore')" id="tab-restore" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 text-slate-500 hover:text-slate-300">Restore Backup</button>
+        </div>
+
+        <!-- Create Vault Section -->
+        <div id="section-create" class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <p class="text-xs text-slate-500 font-medium leading-relaxed text-center mb-6">
+                Define your master cryptographic key. This password is the <span class="text-blue-400 font-bold">only way</span> to access your data.
+            </p>
+            <form class="space-y-6" method="post">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Master Password</label>
+                        <input type="password" name="master_password" minlength="12" required
+                               class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                               placeholder="••••••••••••">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirm Identity</label>
+                        <input type="password" name="confirm_password" minlength="12" required
+                               class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                               placeholder="••••••••••••">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Recovery Clue (Hint)</label>
+                    <input name="password_hint" placeholder="e.g. My first hardware project"
+                           class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all">
+                </div>
+
+                <button class="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 transition-all transform active:scale-[0.98] uppercase tracking-[0.2em] text-xs" type="submit">
+                    GENERATE SECURE ARCHIVE
+                </button>
+            </form>
+        </div>
+
+        <!-- Restore Vault Section -->
+        <div id="section-restore" class="hidden space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <p class="text-xs text-slate-500 font-medium leading-relaxed text-center mb-6">
+                Upload your <span class="text-blue-400 font-bold">.svault</span> file and enter the master password.
+            </p>
+            <form class="space-y-6" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="restore_vault" value="1">
+                
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Backup File (.svault)</label>
+                    <input type="file" name="backup_file" accept=".svault" required id="restore-file-input"
+                           class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 transition-all file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-600 file:text-white hover:file:bg-blue-500">
+                </div>
+
                 <div class="space-y-2">
                     <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Master Password</label>
-                    <input type="password" name="master_password" minlength="12" autocomplete="new-password" required autofocus
-                           class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-800"
+                    <input type="password" name="master_password" required
+                           class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all"
                            placeholder="••••••••••••">
                 </div>
-                <div class="space-y-2">
-                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirm Identity</label>
-                    <input type="password" name="confirm_password" minlength="12" autocomplete="new-password" required
-                           class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-800"
-                           placeholder="••••••••••••">
-                </div>
-            </div>
 
-            <div class="space-y-2 pt-4">
-                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Recovery Clue (Hint)</label>
-                <input name="password_hint" placeholder="e.g. My first hardware project name"
-                       class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-800">
-                <p class="text-[9px] text-slate-600 italic px-1 italic font-medium">Safe clues only. Never use the actual password or obvious personal data.</p>
-            </div>
-
-            <button class="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-[2rem] shadow-2xl shadow-blue-500/20 transition-all transform active:scale-[0.98] uppercase tracking-[0.2em] text-xs mt-6" type="submit">
-                GENERATE SECURE ARCHIVE
-            </button>
-
-            <div class="pt-8 text-center border-t border-white/5">
-                <div class="flex flex-col items-center gap-4">
-                    <div class="flex items-center gap-3">
-                        <img src="https://github.com/manoranjan2050.png" class="w-8 h-8 rounded-full border border-blue-500/50" alt="Manoranjan">
-                        <div class="text-left">
-                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Developed by</p>
-                            <a href="https://github.com/manoranjan2050" target="_blank" class="text-sm font-bold text-white hover:text-blue-400 transition-colors">Manoranjan</a>
-                        </div>
+                <!-- Legacy Salt Input (Hidden by default) -->
+                <div id="legacy-salt-container" class="hidden space-y-2 animate-in fade-in zoom-in duration-300">
+                    <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl mb-4">
+                        <p class="text-[9px] text-amber-500 font-bold uppercase tracking-tight leading-tight">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i> Legacy Backup Detected
+                        </p>
+                        <p class="text-[10px] text-slate-400 mt-1">This older backup requires your original 16-byte HEX salt to restore.</p>
                     </div>
-                    <a href="https://manoranjan.dev" target="_blank" class="text-[10px] font-bold text-blue-500 hover:underline tracking-widest uppercase">manoranjan.dev</a>
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Legacy Hex Salt (32 chars)</label>
+                    <input type="text" name="legacy_salt" maxlength="32"
+                           class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white font-mono text-sm focus:outline-none focus:border-amber-500/50 transition-all"
+                           placeholder="e.g. 5f3a...b2e1">
+                </div>
+
+                <button class="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl shadow-xl shadow-indigo-500/20 transition-all transform active:scale-[0.98] uppercase tracking-[0.2em] text-xs" type="submit">
+                    RESTORE CLOUD ARCHIVE
+                </button>
+            </form>
+        </div>
+
+        <div class="pt-8 mt-4 text-center border-t border-white/5">
+            <div class="flex flex-col items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <img src="https://github.com/manoranjan2050.png" class="w-8 h-8 rounded-full border border-blue-500/50" alt="Manoranjan">
+                    <div class="text-left">
+                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Developed by</p>
+                        <a href="https://github.com/manoranjan2050" target="_blank" class="text-sm font-bold text-white hover:text-blue-400 transition-colors">Manoranjan</a>
+                    </div>
                 </div>
             </div>
-        </form>
+        </div>
+
+        <script>
+        // Check if file starts with MAGIC
+        document.getElementById('restore-file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const arr = new Uint8Array(e.target.result).subarray(0, 4);
+                let header = "";
+                for(let i = 0; i < arr.length; i++) header += String.fromCharCode(arr[i]);
+                
+                const container = document.getElementById('legacy-salt-container');
+                if (header !== "SVLT") {
+                    container.classList.remove('hidden');
+                } else {
+                    container.classList.add('hidden');
+                }
+            };
+            reader.readAsArrayBuffer(file.slice(0, 4));
+        });
+
+        function switchMode(mode) {
+            const createSection = document.getElementById('section-create');
+            const restoreSection = document.getElementById('section-restore');
+            const tabCreate = document.getElementById('tab-create');
+            const tabRestore = document.getElementById('tab-restore');
+            const title = document.getElementById('setup-title');
+
+            if (mode === 'create') {
+                createSection.classList.remove('hidden');
+                restoreSection.classList.add('hidden');
+                tabCreate.className = "flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 bg-blue-600 text-white shadow-lg";
+                tabRestore.className = "flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 text-slate-500 hover:text-slate-300";
+                title.innerHTML = 'Create Your <span class="text-gradient">Vault</span>';
+            } else {
+                createSection.classList.add('hidden');
+                restoreSection.classList.remove('hidden');
+                tabRestore.className = "flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 bg-blue-600 text-white shadow-lg";
+                tabCreate.className = "flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 text-slate-500 hover:text-slate-300";
+                title.innerHTML = 'Restore Your <span class="text-gradient">Vault</span>';
+            }
+        }
+        </script>
     </div>
 </section>
 {% endblock %}

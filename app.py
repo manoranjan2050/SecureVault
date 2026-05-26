@@ -43,6 +43,7 @@ BACKUP_DIR = BASE_DIR / "backups"
 FILES_DIR = BASE_DIR / "encrypted_files"
 DB_PATH = DATA_DIR / "vault.db"
 FLASK_SECRET_PATH = DATA_DIR / "flask.secret"
+BACKUP_MAGIC = b"SVLT"
 DEFAULT_SESSION_TIMEOUT_SECONDS = 15 * 60
 
 ACTIVE_KEYS: dict[str, tuple[bytes, float]] = {}
@@ -382,6 +383,56 @@ def create_app() -> Flask:
             return redirect(url_for("login"))
 
         if request.method == "POST":
+            # Check if this is a restoration request
+            if "restore_vault" in request.form:
+                password = request.form.get("master_password", "")
+                uploaded = request.files.get("backup_file")
+                if not uploaded or not uploaded.filename:
+                    flash("Select a .svault backup file first.", "error")
+                    return render_template("setup.html")
+                
+                try:
+                    data = uploaded.read()
+                    salt = None
+                    
+                    if data.startswith(BACKUP_MAGIC):
+                        salt = data[4:20]
+                    else:
+                        # Legacy backup - check for manual salt
+                        legacy_salt_hex = request.form.get("legacy_salt", "").strip()
+                        if not legacy_salt_hex:
+                            flash("This is a legacy backup. Please provide the 16-byte HEX salt from your original vault.", "error")
+                            return render_template("setup.html")
+                        try:
+                            salt = bytes.fromhex(legacy_salt_hex)
+                            if len(salt) != 16:
+                                raise ValueError()
+                        except ValueError:
+                            flash("Invalid legacy salt. It must be exactly 32 hex characters.", "error")
+                            return render_template("setup.html")
+                    
+                    key = derive_key(password, salt)
+                    # restore_backup_bytes will raise if password is wrong
+                    restore_backup_bytes(data, key)
+                    
+                    # Set the correct salt in the new DB after restoration
+                    set_config_value("kdf_salt", salt)
+                    
+                    # Log them in automatically
+                    token = secrets.token_urlsafe(32)
+                    ACTIVE_KEYS[token] = (key, time.time())
+                    session.clear()
+                    session["vault_token"] = token
+                    log_audit("setup_restore", "Vault restored from backup during setup")
+                    flash("Vault successfully restored. Welcome back!", "success")
+                    return redirect(url_for("dashboard"))
+                except (InvalidTag, ValueError) as e:
+                    flash(f"Restoration failed: {str(e)}", "error")
+                    return render_template("setup.html")
+                except Exception as e:
+                    flash(f"Restoration error: {str(e)}", "error")
+                    return render_template("setup.html")
+
             password = request.form.get("master_password", "")
             confirm = request.form.get("confirm_password", "")
             password_hint = request.form.get("password_hint", "").strip()
@@ -1234,10 +1285,11 @@ def create_app() -> Flask:
             return redirect(url_for("settings"))
         try:
             restore_backup_bytes(uploaded.read(), key)
-        except (InvalidTag, ValueError, RuntimeError):
-            log_audit("restore_failed", "Backup restore failed")
-            flash("Backup restore failed. Check file and master password.", "error")
+        except Exception as e:
+            log_audit("restore_failed", f"Backup restore error: {str(e)}")
+            flash(f"Restoration failed: {str(e)}", "error")
             return redirect(url_for("settings"))
+        
         log_audit("restore", f"Backup restored: {Path(uploaded.filename).name}")
         flash("Backup restored. If anything looks stale, restart SecureVault.", "success")
         return redirect(url_for("dashboard"))
@@ -1289,9 +1341,21 @@ def create_app() -> Flask:
     def recovery_kit():
         require_key()
         recovery_phrase = session.pop("recovery_phrase_once", None)
+        try:
+            salt_hex = get_config_value("kdf_salt").hex()
+        except:
+            salt_hex = "Not available"
+
+        try:
+            recovery_salt_hex = get_config_value("recovery_salt").hex()
+        except:
+            recovery_salt_hex = "Not available"
+            
         return render_template(
             "recovery_kit.html",
             recovery_phrase=recovery_phrase,
+            vault_salt=salt_hex,
+            recovery_salt=recovery_salt_hex,
             created_at=now_iso(),
             developer_name="MANORANJAN",
             developer_github="https://github.com/manoranjan2050",
@@ -2098,7 +2162,11 @@ def create_backup_file(key: bytes, backup_dir: Path | None = None) -> Path:
     backup_dir = backup_dir or get_backup_directory()
     backup_dir.mkdir(parents=True, exist_ok=True)
     backup_path = backup_dir / f"securevault_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.svault"
-    backup_path.write_bytes(encrypt_bytes(create_backup_zip_bytes(), key))
+    
+    salt = get_config_value("kdf_salt")
+    payload = encrypt_bytes(create_backup_zip_bytes(), key)
+    # Prepend magic and salt so we can restore on fresh install
+    backup_path.write_bytes(BACKUP_MAGIC + salt + payload)
     return backup_path
 
 
@@ -2136,27 +2204,59 @@ def run_auto_backup(key: bytes) -> None:
     log_audit("auto_backup", f"Auto backup created: {backup_path.name}")
 
 
-def restore_backup_bytes(encrypted_backup: bytes, key: bytes) -> None:
-    decrypted = decrypt_bytes(encrypted_backup, key)
+def restore_backup_bytes(data: bytes, key: bytes) -> None:
+    if data.startswith(BACKUP_MAGIC):
+        # Format: MAGIC (4) + SALT (16) + ENCRYPTED_DATA
+        backup_salt = data[4:20]
+        try:
+            # Check if this backup is from a different vault
+            local_salt = get_config_value("kdf_salt")
+            if backup_salt != local_salt:
+                raise ValueError("Backup salt mismatch. This backup is from a different vault instance. To restore it, please use the 'Restore' option on the initial Setup page.")
+        except (ValueError, sqlite3.Error):
+            # If not configured or DB error, assume we are in setup mode and proceed
+            pass
+        encrypted_data = data[20:]
+    else:
+        encrypted_data = data
+        
+    try:
+        decrypted = decrypt_bytes(encrypted_data, key)
+    except Exception:
+        raise ValueError("Decryption failed. Incorrect master password or corrupted backup.")
+
     with ZipFile(io.BytesIO(decrypted), "r") as archive:
         names = archive.namelist()
         if "data/vault.db" not in names:
-            raise ValueError("Backup is missing database")
+            raise ValueError("Backup archive is invalid (missing database)")
+        
+        # Verify file list for safety
         for name in names:
             if not (name == "data/vault.db" or name == "data/flask.secret" or name.startswith("encrypted_files/")):
-                raise ValueError("Backup contains unexpected files")
+                raise ValueError(f"Backup contains unexpected file: {name}")
 
-        DB_PATH.write_bytes(archive.read("data/vault.db"))
-        if "data/flask.secret" in names:
-            FLASK_SECRET_PATH.write_bytes(archive.read("data/flask.secret"))
+        try:
+            # Restore database
+            db_content = archive.read("data/vault.db")
+            DB_PATH.write_bytes(db_content)
+            
+            if "data/flask.secret" in names:
+                FLASK_SECRET_PATH.write_bytes(archive.read("data/flask.secret"))
 
-        for file_path in FILES_DIR.glob("*"):
-            if file_path.is_file() and file_path.name != ".gitkeep":
-                file_path.unlink()
-        for name in names:
-            if name.startswith("encrypted_files/") and not name.endswith("/"):
-                target = FILES_DIR / Path(name).name
-                target.write_bytes(archive.read(name))
+            # Clean and restore encrypted files
+            for file_path in FILES_DIR.glob("*"):
+                if file_path.is_file() and file_path.name != ".gitkeep":
+                    file_path.unlink()
+            
+            for name in names:
+                if name.startswith("encrypted_files/") and not name.endswith("/"):
+                    target = FILES_DIR / Path(name).name
+                    target.write_bytes(archive.read(name))
+        except PermissionError:
+            raise RuntimeError("Database file is locked. Please close any other tabs/apps and try again.")
+        except Exception as e:
+            raise RuntimeError(f"File system error during restore: {str(e)}")
+            
     init_db()
 
 
