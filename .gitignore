@@ -1,22 +1,20 @@
-# Python System Files
-__pycache__/
-*.py[cod]
-*$py.class
+# Local Data (Strictly Private - NEVER UPLOAD)
+data/
+encrypted_files/
+backups/
+!data/.gitkeep
+!encrypted_files/.gitkeep
+!backups/.gitkeep
 
-# Environment Files
+# System & Environment
 .env
 .venv
 env/
 venv/
 ENV/
-
-# Local Data (Strictly Private)
-data/*.db
-data/flask.secret
-encrypted_files/*
-!encrypted_files/.gitkeep
-backups/*.svault
-backups/*.json
+__pycache__/
+*.py[cod]
+*$py.class
 
 # IDE & OS Files
 .vscode/
