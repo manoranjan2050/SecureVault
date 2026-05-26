@@ -16,6 +16,7 @@
             </div>
 
             <form class="space-y-6" method="post">
+                <input type="hidden" name="system_settings_submit" value="1">
                 <div class="space-y-2">
                     <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Authentication Hint</label>
                     <input name="password_hint" value="{{ password_hint }}" placeholder="Non-sensitive clue only"
@@ -72,27 +73,29 @@
                         Send your encrypted <b>.SVAULT</b> archives directly to your private Telegram chat for free, unlimited off-site redundancy.
                     </p>
                     
-                    <div class="space-y-4 pt-2">
-                        <div class="space-y-2">
-                            <label class="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Bot API Token</label>
-                            <input name="telegram_bot_token" value="{{ telegram_bot_token }}" type="password" placeholder="123456789:ABCDEF..."
-                                   class="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500/50 transition-all">
+                    <form method="post" action="{{ url_for('settings') }}" class="space-y-4 pt-2">
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <label class="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Bot API Token</label>
+                                <input name="telegram_bot_token" value="{{ telegram_bot_token }}" type="password" placeholder="123456789:ABCDEF..."
+                                       class="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500/50 transition-all">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Chat ID</label>
+                                <input name="telegram_chat_id" value="{{ telegram_chat_id }}" placeholder="987654321"
+                                       class="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500/50 transition-all">
+                            </div>
                         </div>
-                        <div class="space-y-2">
-                            <label class="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Chat ID</label>
-                            <input name="telegram_chat_id" value="{{ telegram_chat_id }}" placeholder="987654321"
-                                   class="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500/50 transition-all">
-                        </div>
-                    </div>
 
-                    <div class="pt-4 flex gap-3">
-                        <button type="submit" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition">
-                            SAVE CONFIG
-                        </button>
-                        <a href="{{ url_for('telegram_backup') }}" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest text-center transition shadow-lg shadow-blue-500/20">
-                            PUSH TO TELEGRAM
-                        </a>
-                    </div>
+                        <div class="pt-4 flex gap-3">
+                            <button type="submit" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition">
+                                SAVE CONFIG
+                            </button>
+                            <a href="{{ url_for('telegram_backup') }}" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest text-center transition shadow-lg shadow-blue-500/20">
+                                PUSH TO TELEGRAM
+                            </a>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -110,27 +113,29 @@
                         Archive your vault in a <b>Private GitHub Repository</b>. Features version history for every backup.
                     </p>
                     
-                    <div class="space-y-4 pt-2">
-                        <div class="space-y-2">
-                            <label class="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Personal Access Token (PAT)</label>
-                            <input name="github_token" value="{{ github_token }}" type="password" placeholder="ghp_..."
-                                   class="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500/50 transition-all">
+                    <form method="post" action="{{ url_for('settings') }}" class="space-y-4 pt-2">
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <label class="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Personal Access Token (PAT)</label>
+                                <input name="github_token" value="{{ github_token }}" type="password" placeholder="ghp_..."
+                                       class="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500/50 transition-all">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Repository (user/repo)</label>
+                                <input name="github_repo" value="{{ github_repo }}" placeholder="manoranjan2050/my-vault"
+                                       class="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500/50 transition-all">
+                            </div>
                         </div>
-                        <div class="space-y-2">
-                            <label class="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Repository (user/repo)</label>
-                            <input name="github_repo" value="{{ github_repo }}" placeholder="manoranjan2050/my-vault"
-                                   class="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500/50 transition-all">
-                        </div>
-                    </div>
 
-                    <div class="pt-4 flex gap-3">
-                        <button type="submit" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition">
-                            SAVE CONFIG
-                        </button>
-                        <a href="{{ url_for('github_backup') }}" class="flex-1 py-3 bg-white hover:bg-slate-200 text-black rounded-xl text-[10px] font-black uppercase tracking-widest text-center transition shadow-lg">
-                            PUSH TO GITHUB
-                        </a>
-                    </div>
+                        <div class="pt-4 flex gap-3">
+                            <button type="submit" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition">
+                                SAVE CONFIG
+                            </button>
+                            <a href="{{ url_for('github_backup') }}" class="flex-1 py-3 bg-white hover:bg-slate-200 text-black rounded-xl text-[10px] font-black uppercase tracking-widest text-center transition shadow-lg">
+                                PUSH TO GITHUB
+                            </a>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -148,22 +153,24 @@
                         Upload directly to your <b>Dropbox /SecureVault</b> folder. Ideal for quick multi-device availability.
                     </p>
                     
-                    <div class="space-y-4 pt-2">
-                        <div class="space-y-2">
-                            <label class="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">App Access Token</label>
-                            <input name="dropbox_token" value="{{ dropbox_token }}" type="password" placeholder="sl.B..."
-                                   class="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400/50 transition-all">
+                    <form method="post" action="{{ url_for('settings') }}" class="space-y-4 pt-2">
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <label class="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">App Access Token</label>
+                                <input name="dropbox_token" value="{{ dropbox_token }}" type="password" placeholder="sl.B..."
+                                       class="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400/50 transition-all">
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="pt-4 flex gap-3">
-                        <button type="submit" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition">
-                            SAVE CONFIG
-                        </button>
-                        <a href="{{ url_for('dropbox_backup') }}" class="flex-1 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-xl text-[10px] font-black uppercase tracking-widest text-center transition shadow-lg">
-                            PUSH TO DROPBOX
-                        </a>
-                    </div>
+                        <div class="pt-4 flex gap-3">
+                            <button type="submit" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition">
+                                SAVE CONFIG
+                            </button>
+                            <a href="{{ url_for('dropbox_backup') }}" class="flex-1 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-xl text-[10px] font-black uppercase tracking-widest text-center transition shadow-lg">
+                                PUSH TO DROPBOX
+                            </a>
+                        </div>
+                    </form>
                 </div>
             </div>
 

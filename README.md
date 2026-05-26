@@ -11,17 +11,22 @@ SecureVault is a premium, portable Flask-based application for secure offline st
 
 ## 🚀 Elite Features
 
-- **Multi-Cloud Redundancy:** Native support for GitHub Private Repos, Dropbox, and Telegram cloud backups.
-- **Modern Glassmorphism UI:** A sleek, dark-themed, animated interface built with Tailwind CSS and FontAwesome 6.
-- **Advanced Password Vault:** Comprehensive storage for Name, Username, Password, Email, Mobile No, URL, and Notes.
-- **Intelligent TOTP Authenticator:** Native support for Google Authenticator secrets with QR Batch Import and real-time sync.
-- **Privacy Shield:** Optional auto-lock protocol that triggers immediately when switching browser tabs.
-- **Panic Mode Protocol:** A hidden emergency override that instantly moves all data to trash and locks the vault.
-- **Ephemeral Secret Sharing:** Integrated utility to create encrypted, self-destructing links for sharing data.
-- **Security Score Analytics:** Real-time Chart.js visualization of vault integrity on the main dashboard.
+### ☁️ Triple-Cloud Redundancy
+Secure your data off-site with one-click encrypted exports to:
+- **Telegram:** Secure delivery to your private chat via bot.
+- **GitHub:** Version-controlled storage in private repositories.
+- **Dropbox:** Direct synchronization to your personal cloud folders.
+
+### 🔒 Active System Defense
+- **Panic Mode Protocol:** A hidden emergency override that instantly moves all active data to trash and locks the vault.
+- **Privacy Shield:** Optional auto-lock protocol that triggers immediately when switching browser tabs or minimizing the window.
+- **Ephemeral Secret Sharing:** Integrated utility to create encrypted, self-destructing links for sharing data without exposing it to the server.
+
+### 📂 Advanced Data Architecture
 - **Categorized Document Cloud:** Professional file management with specialized categories for ID, Finance, and Legal assets.
-- **Authenticated Entry:** Industry-standard Argon2id key derivation and AES-256-GCM data sealing.
-- **Self-Destruct Queue:** Advanced trash management with restorable objects and permanent purge protocols.
+- **Intelligent TOTP Authenticator:** Native support for Google Authenticator secrets with QR Batch Import and real-time live-sync timers.
+- **Security Score Analytics:** Real-time Chart.js visualization of vault integrity on the main command dashboard.
+- **Advanced Password Vault:** Comprehensive storage for Name, Username, Password, Email, Mobile No, URL, and Notes.
 
 ## 📦 Quick Start
 
@@ -32,9 +37,9 @@ SecureVault is a premium, portable Flask-based application for secure offline st
 ## 🛠️ Tech Stack
 
 - **Backend:** Python 3.10+, Flask, SQLite 3.
-- **Encryption:** `cryptography` (AES-GCM), `argon2-cffi` (ID Type).
-- **Frontend:** Tailwind CSS (CDN), Vanilla JS, Chart.js, FontAwesome 6 Pro.
-- **API Integration:** GitHub API, Dropbox API, Telegram API.
+- **Encryption:** `cryptography` (AES-GCM), `argon2-cffi`.
+- **Frontend:** Tailwind CSS, Vanilla JS, Chart.js, FontAwesome 6 Pro.
+- **API Integration:** GitHub API, Dropbox API, Telegram Bot API.
 
 ## 🛡️ Critical Security Note
 

@@ -1181,18 +1181,34 @@ def create_app() -> Flask:
     def settings():
         key = require_key()
         if request.method == "POST":
-            set_config_value("password_hint", request.form.get("password_hint", "").strip())
-            set_config_value("backup_location", request.form.get("backup_location", "").strip())
-            set_config_value("session_timeout_seconds", request.form.get("session_timeout_seconds", "900"))
-            set_config_value("auto_backup_enabled", "1" if request.form.get("auto_backup_enabled") else "0")
-            set_config_value("lock_on_blur", "1" if request.form.get("lock_on_blur") else "0")
-            set_config_value("telegram_bot_token", request.form.get("telegram_bot_token", "").strip())
-            set_config_value("telegram_chat_id", request.form.get("telegram_chat_id", "").strip())
-            set_config_value("github_token", request.form.get("github_token", "").strip())
-            set_config_value("github_repo", request.form.get("github_repo", "").strip())
-            set_config_value("dropbox_token", request.form.get("dropbox_token", "").strip())
+            # Only update values if they are present in the submitted form
+            if "password_hint" in request.form:
+                set_config_value("password_hint", request.form.get("password_hint", "").strip())
+            if "backup_location" in request.form:
+                set_config_value("backup_location", request.form.get("backup_location", "").strip())
+            if "session_timeout_seconds" in request.form:
+                set_config_value("session_timeout_seconds", request.form.get("session_timeout_seconds", "900"))
+            
+            # Checkbox logic (only if the section containing these checkboxes was submitted)
+            if "system_settings_submit" in request.form:
+                set_config_value("auto_backup_enabled", "1" if request.form.get("auto_backup_enabled") else "0")
+                set_config_value("lock_on_blur", "1" if request.form.get("lock_on_blur") else "0")
+
+            if "telegram_bot_token" in request.form:
+                set_config_value("telegram_bot_token", request.form.get("telegram_bot_token", "").strip())
+            if "telegram_chat_id" in request.form:
+                set_config_value("telegram_chat_id", request.form.get("telegram_chat_id", "").strip())
+            
+            if "github_token" in request.form:
+                set_config_value("github_token", request.form.get("github_token", "").strip())
+            if "github_repo" in request.form:
+                set_config_value("github_repo", request.form.get("github_repo", "").strip())
+            
+            if "dropbox_token" in request.form:
+                set_config_value("dropbox_token", request.form.get("dropbox_token", "").strip())
+                
             log_audit("settings", "Security settings updated")
-            flash("Settings saved.", "success")
+            flash("Configuration synchronized.", "success")
             return redirect(url_for("settings"))
 
         return render_template(

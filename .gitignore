@@ -28,3 +28,8 @@ Thumbs.db
 build/
 dist/
 *.spec
+
+# Custom Security Scripts
+init_admin.php
+database_setup.txt
+test_tg.py
