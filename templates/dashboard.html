@@ -3,6 +3,31 @@
 {% block heading %}Vault Overview{% endblock %}
 {% block content %}
 <div class="space-y-10 animate-in fade-in duration-700">
+    <!-- Status Header -->
+    <div class="flex flex-col md:flex-row items-center justify-between p-6 bg-slate-900/50 border border-white/5 rounded-[2.5rem] gap-6">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-400">
+                <i class="fa-solid fa-gauge-high text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-black text-white uppercase tracking-widest">Vault Status</h3>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">System Pulse: <span class="text-green-500">Active</span></p>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-4">
+            <!-- Security Level Badge -->
+            <div class="flex items-center gap-2 px-5 py-2.5 rounded-full border {% if stats.requires_keyfile %}border-purple-500/20 bg-purple-500/5 text-purple-400{% else %}border-blue-500/20 bg-blue-500/5 text-blue-400{% endif %}">
+                <i class="fa-solid {% if stats.requires_keyfile %}fa-shield-check{% else %}fa-shield{% endif %} text-xs"></i>
+                <span class="text-[10px] font-black uppercase tracking-widest">Security: {% if stats.requires_keyfile %}Extreme (2FA Keyfile){% else %}High (Password Only){% endif %}</span>
+            </div>
+
+            <button onclick="togglePanic()" class="px-6 py-3 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                <i class="fa-solid fa-triangle-exclamation mr-2"></i> Open Panic Mode
+            </button>
+        </div>
+    </div>
+
     <!-- Panic Bar (Hidden by default) -->
     <div id="panic-zone" class="hidden glass p-6 rounded-[2rem] border-red-500/30 bg-red-600/10 mb-8 animate-pulse">
         <div class="flex flex-col md:flex-row items-center justify-between gap-6">

@@ -38,11 +38,44 @@ from flask import (
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
-BACKUP_DIR = BASE_DIR / "backups"
-FILES_DIR = BASE_DIR / "encrypted_files"
-DB_PATH = DATA_DIR / "vault.db"
-FLASK_SECRET_PATH = DATA_DIR / "flask.secret"
+VAULT_POINTER_PATH = BASE_DIR / "vault_pointer.json"
+
+def get_vault_root() -> Path:
+    if VAULT_POINTER_PATH.exists():
+        try:
+            with open(VAULT_POINTER_PATH, 'r') as f:
+                config = json.load(f)
+                custom_path = config.get("vault_root")
+                if custom_path:
+                    p = Path(custom_path)
+                    if p.is_dir():
+                        return p
+        except:
+            pass
+    return BASE_DIR
+
+def get_vault_paths() -> dict[str, Path]:
+    root = get_vault_root()
+    data_dir = root / "data"
+    # Keep session secret in the app root to avoid invalidating sessions when switching vaults
+    app_data_dir = BASE_DIR / "data"
+    app_data_dir.mkdir(exist_ok=True)
+    
+    return {
+        "root": root,
+        "data": data_dir,
+        "backups": root / "backups",
+        "encrypted_files": root / "encrypted_files",
+        "db": data_dir / "vault.db",
+        "flask_secret": app_data_dir / "flask.secret"
+    }
+
+def get_db_path() -> Path: return get_vault_paths()["db"]
+def get_data_dir() -> Path: return get_vault_paths()["data"]
+def get_files_dir() -> Path: return get_vault_paths()["encrypted_files"]
+def get_backup_dir() -> Path: return get_vault_paths()["backups"]
+def get_flask_secret_path() -> Path: return get_vault_paths()["flask_secret"]
+
 BACKUP_MAGIC = b"SVLT"
 DEFAULT_SESSION_TIMEOUT_SECONDS = 15 * 60
 
@@ -313,15 +346,20 @@ FINANCIAL_SUBTITLE_FIELDS = {
 
 
 def create_app() -> Flask:
-    DATA_DIR.mkdir(exist_ok=True)
-    BACKUP_DIR.mkdir(exist_ok=True)
-    FILES_DIR.mkdir(exist_ok=True)
+    paths = get_vault_paths()
+    paths["data"].mkdir(parents=True, exist_ok=True)
+    paths["backups"].mkdir(parents=True, exist_ok=True)
+    paths["encrypted_files"].mkdir(parents=True, exist_ok=True)
 
     app = Flask(__name__)
     app.config["SECRET_KEY"] = load_or_create_flask_secret()
     app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024
 
     init_db()
+
+    @app.template_filter("strftime")
+    def _jinja2_filter_datetime(timestamp, format="%Y-%m-%d %H:%M:%S"):
+        return datetime.fromtimestamp(timestamp).strftime(format)
 
     @app.before_request
     def enforce_session_timeout() -> None:
@@ -348,22 +386,27 @@ def create_app() -> Flask:
             return redirect(url_for("setup"))
 
         password_hint = get_config_text("password_hint", "")
+        requires_keyfile = get_config_text("requires_keyfile", "0") == "1"
+        
         if request.method == "POST":
             locked_until = get_login_locked_until()
             if locked_until > time.time():
                 wait_seconds = int(locked_until - time.time())
                 flash(f"Too many failed attempts. Try again in {wait_seconds} seconds.", "error")
-                return render_template("login.html", password_hint=password_hint)
+                return render_template("login.html", password_hint=password_hint, requires_keyfile=requires_keyfile)
 
             password = request.form.get("master_password", "")
+            keyfile = request.files.get("keyfile")
+            keyfile_data = keyfile.read() if keyfile else b""
+            
             try:
-                key = derive_key(password, get_config_value("kdf_salt"))
+                key = derive_key(password, get_config_value("kdf_salt"), keyfile_data)
                 decrypt_text(get_config_value("vault_check"), key)
             except (InvalidTag, ValueError):
                 register_failed_login()
                 log_audit("failed_login", "Master password login failed")
-                flash("Master password is incorrect.", "error")
-                return render_template("login.html", password_hint=password_hint)
+                flash("Master password or keyfile is incorrect.", "error")
+                return render_template("login.html", password_hint=password_hint, requires_keyfile=requires_keyfile)
 
             reset_failed_logins()
             token = secrets.token_urlsafe(32)
@@ -375,7 +418,27 @@ def create_app() -> Flask:
             flash("Vault unlocked.", "success")
             return redirect(url_for("dashboard"))
 
-        return render_template("login.html", password_hint=password_hint)
+        return render_template("login.html", password_hint=password_hint, requires_keyfile=requires_keyfile, vault_root=str(get_vault_root()))
+
+    @app.route("/switch-vault", methods=["POST"])
+    def switch_vault():
+        new_path = request.form.get("vault_root", "").strip()
+        if not new_path:
+            if VAULT_POINTER_PATH.exists():
+                VAULT_POINTER_PATH.unlink()
+            flash("Vault switched to default location.", "info")
+            return redirect(url_for("login"))
+            
+        p = Path(new_path)
+        if not p.is_dir():
+            flash("Invalid vault directory path.", "error")
+            return redirect(url_for("login"))
+            
+        with open(VAULT_POINTER_PATH, 'w') as f:
+            json.dump({"vault_root": str(p.absolute())}, f)
+            
+        flash(f"Vault switched to: {p.name}", "success")
+        return redirect(url_for("login"))
 
     @app.route("/setup", methods=["GET", "POST"])
     def setup():
@@ -383,7 +446,31 @@ def create_app() -> Flask:
             return redirect(url_for("login"))
 
         if request.method == "POST":
-            # Check if this is a restoration request
+            # 1. Handle Vault Location if provided
+            vault_root = request.form.get("vault_root", "").strip()
+            if vault_root:
+                p = Path(vault_root)
+                if not p.is_dir():
+                    try:
+                        p.mkdir(parents=True, exist_ok=True)
+                    except Exception as e:
+                        flash(f"Could not create vault directory: {str(e)}", "error")
+                        return render_template("setup.html")
+                
+                with open(VAULT_POINTER_PATH, 'w') as f:
+                    json.dump({"vault_root": str(p.absolute())}, f)
+                
+                # Re-initialize directories in the new location
+                paths = get_vault_paths()
+                paths["data"].mkdir(parents=True, exist_ok=True)
+                paths["backups"].mkdir(parents=True, exist_ok=True)
+                paths["encrypted_files"].mkdir(parents=True, exist_ok=True)
+
+            # 2. Extract Keyfile Data
+            keyfile = request.files.get("keyfile")
+            keyfile_data = keyfile.read() if keyfile else b""
+
+            # 3. Handle Restoration
             if "restore_vault" in request.form:
                 password = request.form.get("master_password", "")
                 uploaded = request.files.get("backup_file")
@@ -398,41 +485,34 @@ def create_app() -> Flask:
                     if data.startswith(BACKUP_MAGIC):
                         salt = data[4:20]
                     else:
-                        # Legacy backup - check for manual salt
                         legacy_salt_hex = request.form.get("legacy_salt", "").strip()
                         if not legacy_salt_hex:
-                            flash("This is a legacy backup. Please provide the 16-byte HEX salt from your original vault.", "error")
+                            flash("This is a legacy backup. Please provide the 16-byte HEX salt.", "error")
                             return render_template("setup.html")
                         try:
                             salt = bytes.fromhex(legacy_salt_hex)
-                            if len(salt) != 16:
-                                raise ValueError()
+                            if len(salt) != 16: raise ValueError()
                         except ValueError:
-                            flash("Invalid legacy salt. It must be exactly 32 hex characters.", "error")
+                            flash("Invalid legacy salt.", "error")
                             return render_template("setup.html")
                     
-                    key = derive_key(password, salt)
-                    # restore_backup_bytes will raise if password is wrong
+                    key = derive_key(password, salt, keyfile_data)
                     restore_backup_bytes(data, key)
-                    
-                    # Set the correct salt in the new DB after restoration
                     set_config_value("kdf_salt", salt)
+                    set_config_value("requires_keyfile", "1" if keyfile_data else "0")
                     
-                    # Log them in automatically
                     token = secrets.token_urlsafe(32)
                     ACTIVE_KEYS[token] = (key, time.time())
                     session.clear()
                     session["vault_token"] = token
-                    log_audit("setup_restore", "Vault restored from backup during setup")
-                    flash("Vault successfully restored. Welcome back!", "success")
+                    log_audit("setup_restore", "Vault restored during setup")
+                    flash("Vault successfully restored.", "success")
                     return redirect(url_for("dashboard"))
-                except (InvalidTag, ValueError) as e:
+                except Exception as e:
                     flash(f"Restoration failed: {str(e)}", "error")
                     return render_template("setup.html")
-                except Exception as e:
-                    flash(f"Restoration error: {str(e)}", "error")
-                    return render_template("setup.html")
 
+            # 4. Create New Vault
             password = request.form.get("master_password", "")
             confirm = request.form.get("confirm_password", "")
             password_hint = request.form.get("password_hint", "").strip()
@@ -444,19 +524,22 @@ def create_app() -> Flask:
                 return render_template("setup.html")
 
             salt = os.urandom(16)
-            key = derive_key(password, salt)
+            key = derive_key(password, salt, keyfile_data)
             recovery_phrase = generate_recovery_phrase()
             recovery_salt = os.urandom(16)
             recovery_key = derive_key(recovery_phrase, recovery_salt)
+            
+            init_db() # Ensure DB is initialized at the new location
             set_config_value("kdf_salt", salt)
             set_config_value("vault_check", encrypt_text("securevault-ok", key))
             set_config_value("password_hint", password_hint)
+            set_config_value("requires_keyfile", "1" if keyfile_data else "0")
             set_config_value("recovery_salt", recovery_salt)
             set_config_value("recovery_check", encrypt_text("securevault-recovery-ok", recovery_key))
             set_config_value("recovery_wrapped_key", wrap_key(key, recovery_key))
             set_config_value("session_timeout_seconds", str(DEFAULT_SESSION_TIMEOUT_SECONDS))
             set_config_value("auto_backup_enabled", "1")
-            set_config_value("created_at", datetime.utcnow().isoformat())
+            set_config_value("created_at", now_iso())
 
             token = secrets.token_urlsafe(32)
             ACTIVE_KEYS[token] = (key, time.time())
@@ -467,7 +550,7 @@ def create_app() -> Flask:
             flash("SecureVault is ready.", "success")
             return redirect(url_for("recovery_kit"))
 
-        return render_template("setup.html")
+        return render_template("setup.html", base_dir=str(BASE_DIR))
 
     @app.route("/recover", methods=["GET", "POST"])
     def recover():
@@ -478,6 +561,10 @@ def create_app() -> Flask:
             recovery_phrase = request.form.get("recovery_phrase", "").strip()
             new_password = request.form.get("new_password", "")
             confirm = request.form.get("confirm_password", "")
+            
+            keyfile = request.files.get("keyfile")
+            keyfile_data = keyfile.read() if keyfile else b""
+            
             if len(new_password) < 10:
                 flash("Use at least 10 characters for the new master password.", "error")
                 return render_template("recover.html")
@@ -486,6 +573,7 @@ def create_app() -> Flask:
                 return render_template("recover.html")
 
             try:
+                # Recovery phrase derivation never uses a keyfile for safety
                 recovery_key = derive_key(recovery_phrase, get_config_value("recovery_salt"))
                 decrypt_text(get_config_value("recovery_check"), recovery_key)
                 old_key = unwrap_key(get_config_value("recovery_wrapped_key"), recovery_key)
@@ -495,13 +583,15 @@ def create_app() -> Flask:
                 return render_template("recover.html")
 
             new_salt = os.urandom(16)
-            new_key = derive_key(new_password, new_salt)
+            new_key = derive_key(new_password, new_salt, keyfile_data)
             new_recovery_phrase = generate_recovery_phrase()
             new_recovery_salt = os.urandom(16)
             new_recovery_key = derive_key(new_recovery_phrase, new_recovery_salt)
+            
             reencrypt_vault(old_key, new_key)
             set_config_value("kdf_salt", new_salt)
             set_config_value("vault_check", encrypt_text("securevault-ok", new_key))
+            set_config_value("requires_keyfile", "1" if keyfile_data else "0")
             set_config_value("recovery_salt", new_recovery_salt)
             set_config_value("recovery_check", encrypt_text("securevault-recovery-ok", new_recovery_key))
             set_config_value("recovery_wrapped_key", wrap_key(new_key, new_recovery_key))
@@ -521,14 +611,16 @@ def create_app() -> Flask:
     def dashboard():
         key = require_key()
         health = vault_health_report(key)
+        requires_keyfile = get_config_text("requires_keyfile", "0") == "1"
         stats = {
             "passwords": health["total_passwords"],
             "notes": query_scalar("SELECT COUNT(*) FROM secure_notes"),
             "documents": health["documents"],
             "financial": health["records"],
             "totp": query_scalar("SELECT COUNT(*) FROM totp_accounts"),
-            "backups": len(list(BACKUP_DIR.glob("*.svault"))),
-            "health": health
+            "backups": len(list(get_backup_dir().glob("*.svault"))),
+            "health": health,
+            "requires_keyfile": requires_keyfile
         }
         recent_passwords = fetch_all(
             "SELECT id, title, username, tags, updated_at FROM passwords ORDER BY updated_at DESC LIMIT 5"
@@ -1064,7 +1156,7 @@ def create_app() -> Flask:
             mime_type = uploaded.mimetype or guess_mime_type(original_name)
             encrypted_blob = encrypt_bytes(data, key)
             stored_name = f"{secrets.token_hex(16)}.bin"
-            stored_path = FILES_DIR / stored_name
+            stored_path = get_files_dir() / stored_name
             stored_path.write_bytes(encrypted_blob)
             now = now_iso()
             execute(
@@ -1089,7 +1181,7 @@ def create_app() -> Flask:
             flash("Document not found.", "error")
             return redirect(url_for("documents"))
 
-        encrypted_path = FILES_DIR / row["stored_name"]
+        encrypted_path = get_files_dir() / row["stored_name"]
         if not encrypted_path.exists():
             flash("Encrypted file is missing.", "error")
             return redirect(url_for("documents"))
@@ -1111,7 +1203,7 @@ def create_app() -> Flask:
             flash("Preview is available only for PDF and image files.", "error")
             return redirect(url_for("documents"))
 
-        encrypted_path = FILES_DIR / row["stored_name"]
+        encrypted_path = get_files_dir() / row["stored_name"]
         if not encrypted_path.exists():
             flash("Encrypted file is missing.", "error")
             return redirect(url_for("documents"))
@@ -1130,138 +1222,133 @@ def create_app() -> Flask:
             flash("Document moved to trash.", "success")
         return redirect(url_for("documents"))
 
-    @app.route("/backup")
-    def backup():
+    @app.route("/maintenance", methods=["GET", "POST"])
+    def maintenance():
+        require_key()
+        if request.method == "POST":
+            if "create_local_backup" in request.form:
+                try:
+                    key = require_key()
+                    path = create_backup_file(key)
+                    flash(f"Local backup created: {path.name}", "success")
+                except Exception as e:
+                    flash(f"Backup failed: {str(e)}", "error")
+                return redirect(url_for("maintenance"))
+
+        backups = sorted(get_backup_dir().glob("*.svault"), key=lambda x: x.stat().st_mtime, reverse=True)
+        return render_template(
+            "maintenance.html",
+            backups=backups,
+            telegram_bot_token=get_config_text("telegram_bot_token", ""),
+            telegram_chat_id=get_config_text("telegram_chat_id", ""),
+            github_token=get_config_text("github_token", ""),
+            github_repo=get_config_text("github_repo", ""),
+            dropbox_token=get_config_text("dropbox_token", ""),
+        )
+
+    @app.route("/backup/local")
+    def backup_download():
         key = require_key()
-        backup_path = create_backup_file(key)
-        log_audit("backup", f"Backup exported: {backup_path.name}")
-        return send_file(backup_path, as_attachment=True, download_name=backup_path.name)
+        try:
+            path = create_backup_file(key)
+            return send_file(path, as_attachment=True, download_name=path.name)
+        except Exception as e:
+            flash(f"Local backup failed: {str(e)}", "error")
+            return redirect(url_for("maintenance"))
 
     @app.route("/backup/telegram")
     def telegram_backup():
         key = require_key()
         bot_token = get_config_text("telegram_bot_token", "").strip()
         chat_id = get_config_text("telegram_chat_id", "").strip()
-        
         if not bot_token or not chat_id:
-            flash("Configure Telegram Bot Token and Chat ID in Settings first.", "error")
-            return redirect(url_for("settings"))
-            
+            flash("Configure Telegram credentials in Settings first.", "error")
+            return redirect(url_for("maintenance"))
         try:
-            # Create fresh backup
             backup_path = create_backup_file(key)
-            
-            # Send to Telegram
             url = f"https://api.telegram.org/bot{bot_token}/sendDocument"
             with open(backup_path, 'rb') as f:
-                files = {'document': f}
-                data = {'chat_id': chat_id, 'caption': f"📦 SecureVault Elite Backup\n📅 {now_iso()}\n🔒 Encrypted AES-256"}
-                response = requests.post(url, data=data, files=files, timeout=60)
-                
+                response = requests.post(url, data={'chat_id': chat_id, 'caption': f"📦 SecureVault Elite Backup\n📅 {now_iso()}"}, files={'document': f}, timeout=60)
             if response.status_code == 200:
-                log_audit("telegram_backup", f"Vault exported to Telegram Cloud: {backup_path.name}")
+                log_audit("telegram_backup", f"Vault exported to Telegram: {backup_path.name}")
                 flash("Vault successfully backed up to Telegram Cloud!", "success")
             else:
                 flash(f"Telegram API Error: {response.text}", "error")
-                
         except Exception as e:
             flash(f"Cloud backup failed: {str(e)}", "error")
-            
-        return redirect(url_for("settings"))
+        return redirect(url_for("maintenance"))
 
     @app.route("/backup/github")
     def github_backup():
         key = require_key()
         gh_token = get_config_text("github_token", "").strip()
-        gh_repo = get_config_text("github_repo", "").strip() # Format: username/repo
-        
+        gh_repo = get_config_text("github_repo", "").strip()
         if not gh_token or not gh_repo:
-            flash("Configure GitHub Token and Repo (user/repo) in Settings first.", "error")
-            return redirect(url_for("settings"))
-            
+            flash("Configure GitHub credentials in Settings first.", "error")
+            return redirect(url_for("maintenance"))
         try:
             backup_path = create_backup_file(key)
             content = base64.b64encode(backup_path.read_bytes()).decode('ascii')
-            filename = backup_path.name
-            
-            url = f"https://api.github.com/repos/{gh_repo}/contents/backups/{filename}"
+            url = f"https://api.github.com/repos/{gh_repo}/contents/backups/{backup_path.name}"
             headers = {"Authorization": f"token {gh_token}", "Accept": "application/vnd.github.v3+json"}
             data = {"message": f"Vault Backup {now_iso()}", "content": content}
-            
             response = requests.put(url, headers=headers, json=data, timeout=60)
             if response.status_code in [200, 201]:
-                log_audit("github_backup", f"Vault pushed to GitHub: {filename}")
-                flash("Vault successfully synced to GitHub Private Repo!", "success")
+                log_audit("github_backup", f"Vault pushed to GitHub: {backup_path.name}")
+                flash("Vault successfully synced to GitHub!", "success")
             else:
                 flash(f"GitHub API Error: {response.text}", "error")
         except Exception as e:
             flash(f"GitHub backup failed: {str(e)}", "error")
-        return redirect(url_for("settings"))
+        return redirect(url_for("maintenance"))
 
     @app.route("/backup/dropbox")
     def dropbox_backup():
         key = require_key()
         dbx_token = get_config_text("dropbox_token", "").strip()
-        
         if not dbx_token:
-            flash("Configure Dropbox Access Token in Settings first.", "error")
-            return redirect(url_for("settings"))
-            
+            flash("Configure Dropbox Token in Settings first.", "error")
+            return redirect(url_for("maintenance"))
         try:
             backup_path = create_backup_file(key)
-            filename = backup_path.name
-            
             url = "https://content.dropboxapi.com/2/files/upload"
-            headers = {
-                "Authorization": f"Bearer {dbx_token}",
-                "Dropbox-API-Arg": json.dumps({"path": f"/SecureVault/{filename}", "mode": "add", "autorename": True, "mute": False}),
-                "Content-Type": "application/octet-stream"
-            }
-            
+            headers = {"Authorization": f"Bearer {dbx_token}", "Dropbox-API-Arg": json.dumps({"path": f"/SecureVault/{backup_path.name}", "mode": "add"}), "Content-Type": "application/octet-stream"}
             response = requests.post(url, headers=headers, data=backup_path.read_bytes(), timeout=60)
             if response.status_code == 200:
-                log_audit("dropbox_backup", f"Vault uploaded to Dropbox: {filename}")
+                log_audit("dropbox_backup", f"Vault uploaded to Dropbox: {backup_path.name}")
                 flash("Vault successfully synced to Dropbox!", "success")
             else:
                 flash(f"Dropbox API Error: {response.text}", "error")
         except Exception as e:
             flash(f"Dropbox backup failed: {str(e)}", "error")
-        return redirect(url_for("settings"))
+        return redirect(url_for("maintenance"))
 
     @app.route("/settings", methods=["GET", "POST"])
     def settings():
         key = require_key()
         if request.method == "POST":
-            # Only update values if they are present in the submitted form
             if "password_hint" in request.form:
                 set_config_value("password_hint", request.form.get("password_hint", "").strip())
             if "backup_location" in request.form:
                 set_config_value("backup_location", request.form.get("backup_location", "").strip())
             if "session_timeout_seconds" in request.form:
                 set_config_value("session_timeout_seconds", request.form.get("session_timeout_seconds", "900"))
-            
-            # Checkbox logic (only if the section containing these checkboxes was submitted)
             if "system_settings_submit" in request.form:
                 set_config_value("auto_backup_enabled", "1" if request.form.get("auto_backup_enabled") else "0")
                 set_config_value("lock_on_blur", "1" if request.form.get("lock_on_blur") else "0")
-
             if "telegram_bot_token" in request.form:
                 set_config_value("telegram_bot_token", request.form.get("telegram_bot_token", "").strip())
             if "telegram_chat_id" in request.form:
                 set_config_value("telegram_chat_id", request.form.get("telegram_chat_id", "").strip())
-            
             if "github_token" in request.form:
                 set_config_value("github_token", request.form.get("github_token", "").strip())
             if "github_repo" in request.form:
                 set_config_value("github_repo", request.form.get("github_repo", "").strip())
-            
             if "dropbox_token" in request.form:
                 set_config_value("dropbox_token", request.form.get("dropbox_token", "").strip())
-                
             log_audit("settings", "Security settings updated")
             flash("Configuration synchronized.", "success")
             return redirect(url_for("settings"))
-
         return render_template(
             "settings.html",
             password_hint=get_config_text("password_hint", ""),
@@ -1282,46 +1369,67 @@ def create_app() -> Flask:
         uploaded = request.files.get("backup_file")
         if not uploaded or not uploaded.filename:
             flash("Choose a .svault backup file first.", "error")
-            return redirect(url_for("settings"))
+            return redirect(url_for("maintenance"))
+        restore_type = request.form.get("restore_type", "password")
         try:
-            restore_backup_bytes(uploaded.read(), key)
+            data = uploaded.read()
+            if restore_type == "phrase":
+                phrase = request.form.get("recovery_phrase", "").strip()
+                if not phrase:
+                    flash("Recovery phrase is required.", "error")
+                    return redirect(url_for("maintenance"))
+                restore_backup_bytes(data, phrase)
+            else:
+                restore_backup_bytes(data, key)
         except Exception as e:
             log_audit("restore_failed", f"Backup restore error: {str(e)}")
             flash(f"Restoration failed: {str(e)}", "error")
-            return redirect(url_for("settings"))
-        
+            return redirect(url_for("maintenance"))
         log_audit("restore", f"Backup restored: {Path(uploaded.filename).name}")
-        flash("Backup restored. If anything looks stale, restart SecureVault.", "success")
+        flash("Backup restored successfully.", "success")
         return redirect(url_for("dashboard"))
 
     @app.route("/change-master-password", methods=["GET", "POST"])
     def change_master_password():
         old_key = require_key()
+        requires_keyfile = get_config_text("requires_keyfile", "0") == "1"
+        
         if request.method == "POST":
             current_password = request.form.get("current_password", "")
             new_password = request.form.get("new_password", "")
             confirm = request.form.get("confirm_password", "")
+            
+            # Keyfiles for both current and new
+            current_keyfile = request.files.get("current_keyfile")
+            current_keyfile_data = current_keyfile.read() if current_keyfile else b""
+            
+            new_keyfile = request.files.get("new_keyfile")
+            new_keyfile_data = new_keyfile.read() if new_keyfile else b""
+            
             try:
-                check_key = derive_key(current_password, get_config_value("kdf_salt"))
+                check_key = derive_key(current_password, get_config_value("kdf_salt"), current_keyfile_data)
                 decrypt_text(get_config_value("vault_check"), check_key)
             except (InvalidTag, ValueError):
-                flash("Current master password is incorrect.", "error")
-                return render_template("change_master_password.html")
+                flash("Current master password or keyfile is incorrect.", "error")
+                return render_template("change_master_password.html", requires_keyfile=requires_keyfile)
+                
             if len(new_password) < 10:
                 flash("Use at least 10 characters for the new master password.", "error")
-                return render_template("change_master_password.html")
+                return render_template("change_master_password.html", requires_keyfile=requires_keyfile)
             if new_password != confirm:
                 flash("New passwords do not match.", "error")
-                return render_template("change_master_password.html")
+                return render_template("change_master_password.html", requires_keyfile=requires_keyfile)
 
             new_salt = os.urandom(16)
-            new_key = derive_key(new_password, new_salt)
+            new_key = derive_key(new_password, new_salt, new_keyfile_data)
             new_recovery_phrase = generate_recovery_phrase()
             new_recovery_salt = os.urandom(16)
             new_recovery_key = derive_key(new_recovery_phrase, new_recovery_salt)
+            
             reencrypt_vault(old_key, new_key)
             set_config_value("kdf_salt", new_salt)
             set_config_value("vault_check", encrypt_text("securevault-ok", new_key))
+            set_config_value("requires_keyfile", "1" if new_keyfile_data else "0")
             set_config_value("recovery_salt", new_recovery_salt)
             set_config_value("recovery_check", encrypt_text("securevault-recovery-ok", new_recovery_key))
             set_config_value("recovery_wrapped_key", wrap_key(new_key, new_recovery_key))
@@ -1335,7 +1443,8 @@ def create_app() -> Flask:
             log_audit("master_password_change", "Master password changed")
             flash("Master password changed. Print or save the new recovery kit.", "success")
             return redirect(url_for("recovery_kit"))
-        return render_template("change_master_password.html")
+            
+        return render_template("change_master_password.html", requires_keyfile=requires_keyfile)
 
     @app.route("/recovery-kit")
     def recovery_kit():
@@ -1426,7 +1535,7 @@ def create_app() -> Flask:
             payload = decrypt_json(row["encrypted_payload"], key)
             if row["item_type"] == "document":
                 stored_name = payload.get("stored_name", "")
-                file_path = FILES_DIR / stored_name
+                file_path = get_files_dir() / stored_name
                 if stored_name and file_path.exists():
                     file_path.unlink()
             execute("DELETE FROM trash_items WHERE id = ?", (item_id,))
@@ -1622,10 +1731,11 @@ def parse_standard_otp_url(url: str) -> dict | None:
 
 
 def load_or_create_flask_secret() -> str:
-    if FLASK_SECRET_PATH.exists():
-        return FLASK_SECRET_PATH.read_text(encoding="utf-8")
+    secret_path = get_vault_paths()["flask_secret"]
+    if secret_path.exists():
+        return secret_path.read_text(encoding="utf-8")
     secret = secrets.token_urlsafe(48)
-    FLASK_SECRET_PATH.write_text(secret, encoding="utf-8")
+    secret_path.write_text(secret, encoding="utf-8")
     return secret
 
 
@@ -1735,7 +1845,7 @@ def init_db() -> None:
 
 
 def connect() -> sqlite3.Connection:
-    db = sqlite3.connect(DB_PATH)
+    db = sqlite3.connect(get_vault_paths()["db"])
     db.row_factory = sqlite3.Row
     return db
 
@@ -1800,11 +1910,17 @@ def get_session_timeout_seconds() -> int:
     return value if value in allowed else DEFAULT_SESSION_TIMEOUT_SECONDS
 
 
-def derive_key(password: str, salt: bytes) -> bytes:
+def derive_key(password: str, salt: bytes, keyfile_data: bytes = b"") -> bytes:
     if not password:
         raise ValueError("Password is required")
+    
+    secret = password.encode("utf-8")
+    if keyfile_data:
+        # Incorporate SHA-256 hash of keyfile into the secret
+        secret += hashlib.sha256(keyfile_data).digest()
+        
     return hash_secret_raw(
-        secret=password.encode("utf-8"),
+        secret=secret,
         salt=salt,
         time_cost=3,
         memory_cost=65536,
@@ -2120,7 +2236,7 @@ def restore_trash_item(key: bytes, row: sqlite3.Row) -> None:
         return
     if item_type == "document":
         stored_name = payload.get("stored_name", "")
-        if stored_name and not (FILES_DIR / stored_name).exists():
+        if stored_name and not (get_files_dir() / stored_name).exists():
             raise RuntimeError("Encrypted file is missing")
         execute(
             """
@@ -2164,19 +2280,33 @@ def create_backup_file(key: bytes, backup_dir: Path | None = None) -> Path:
     backup_path = backup_dir / f"securevault_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.svault"
     
     salt = get_config_value("kdf_salt")
+    
+    # Include recovery metadata for "Restore with Phrase"
+    rec_salt = get_config_value("recovery_salt")
+    rec_wrapped = get_config_value("recovery_wrapped_key")
+    
+    if not rec_salt or not rec_wrapped:
+        # Fallback if metadata is missing (should not happen in Elite v2.2.1+)
+        rec_salt = b"\x00" * 16
+        rec_wrapped = b""
+
     payload = encrypt_bytes(create_backup_zip_bytes(), key)
-    # Prepend magic and salt so we can restore on fresh install
-    backup_path.write_bytes(BACKUP_MAGIC + salt + payload)
+    
+    # Format: MAGIC(4) + KDF_SALT(16) + REC_SALT(16) + WRAPPED_LEN(4) + WRAPPED_DATA(N) + PAYLOAD
+    wrapped_bytes = rec_wrapped if isinstance(rec_wrapped, bytes) else rec_wrapped.encode("ascii")
+    header = struct.pack("<4s16s16sI", BACKUP_MAGIC, salt, rec_salt, len(wrapped_bytes))
+    
+    backup_path.write_bytes(header + wrapped_bytes + payload)
     return backup_path
 
 
 def create_backup_zip_bytes() -> bytes:
     zip_buffer = io.BytesIO()
     with ZipFile(zip_buffer, "w", compression=ZIP_DEFLATED) as archive:
-        archive.write(DB_PATH, "data/vault.db")
-        if FLASK_SECRET_PATH.exists():
-            archive.write(FLASK_SECRET_PATH, "data/flask.secret")
-        for file_path in FILES_DIR.glob("*"):
+        archive.write(get_db_path(), "data/vault.db")
+        if get_flask_secret_path().exists():
+            archive.write(get_flask_secret_path(), "data/flask.secret")
+        for file_path in get_files_dir().glob("*"):
             if file_path.is_file() and file_path.name != ".gitkeep":
                 archive.write(file_path, f"encrypted_files/{file_path.name}")
     return zip_buffer.getvalue()
@@ -2186,7 +2316,7 @@ def get_backup_directory() -> Path:
     configured = get_config_text("backup_location", "").strip()
     if configured:
         return Path(configured).expanduser()
-    return BACKUP_DIR
+    return get_backup_dir()
 
 
 def run_auto_backup(key: bytes) -> None:
@@ -2204,26 +2334,52 @@ def run_auto_backup(key: bytes) -> None:
     log_audit("auto_backup", f"Auto backup created: {backup_path.name}")
 
 
-def restore_backup_bytes(data: bytes, key: bytes) -> None:
+def restore_backup_bytes(data: bytes, key_or_phrase: str | bytes) -> None:
+    vault_key = None
+    
+    # Modern Format: Starts with MAGIC
     if data.startswith(BACKUP_MAGIC):
-        # Format: MAGIC (4) + SALT (16) + ENCRYPTED_DATA
-        backup_salt = data[4:20]
         try:
-            # Check if this backup is from a different vault
-            local_salt = get_config_value("kdf_salt")
-            if backup_salt != local_salt:
-                raise ValueError("Backup salt mismatch. This backup is from a different vault instance. To restore it, please use the 'Restore' option on the initial Setup page.")
-        except (ValueError, sqlite3.Error):
-            # If not configured or DB error, assume we are in setup mode and proceed
-            pass
-        encrypted_data = data[20:]
+            # Read header: MAGIC(4), KDF_SALT(16), REC_SALT(16), WRAPPED_LEN(4)
+            if len(data) < 40: raise ValueError("Backup file is too small or corrupted.")
+            magic, kdf_salt, rec_salt, wrapped_len = struct.unpack("<4s16s16sI", data[:40])
+            
+            wrapped_key = data[40:40+wrapped_len]
+            encrypted_payload = data[40+wrapped_len:]
+            
+            if not encrypted_payload: raise ValueError("Backup file contains no payload data.")
+        except (struct.error, ValueError) as e:
+            # Fallback for simple SVLT+SALT format (pre-v2.2.1)
+            if isinstance(key_or_phrase, str):
+                raise ValueError("This is a legacy backup. Recovery phrases are only supported for backups created with Elite v2.2.1+.")
+            
+            kdf_salt = data[4:20]
+            encrypted_payload = data[20:]
+            wrapped_key = b""
+            rec_salt = None
+
+        if isinstance(key_or_phrase, bytes):
+            # Provided master key (password-based)
+            vault_key = key_or_phrase
+        else:
+            # Provided recovery phrase
+            if not wrapped_key or rec_salt is None or rec_salt == b"\x00" * 16:
+                raise ValueError("This backup does not contain recovery metadata. You must restore it using the original Master Password.")
+            try:
+                recovery_key = derive_key(key_or_phrase, rec_salt)
+                vault_key = unwrap_key(wrapped_key, recovery_key)
+            except Exception:
+                raise ValueError("Recovery phrase is incorrect. It does not match the cryptographic signature of this backup.")
     else:
-        encrypted_data = data
+        # Legacy Format: No Magic
+        if isinstance(key_or_phrase, str):
+            raise ValueError("Recovery phrase restore is only supported for modern .svault backups (Elite v2.2.1+).")
+        vault_key = key_or_phrase
         
     try:
-        decrypted = decrypt_bytes(encrypted_data, key)
+        decrypted = decrypt_bytes(encrypted_payload, vault_key)
     except Exception:
-        raise ValueError("Decryption failed. Incorrect master password or corrupted backup.")
+        raise ValueError("Decryption failed. Incorrect master password, keyfile, or corrupted backup.")
 
     with ZipFile(io.BytesIO(decrypted), "r") as archive:
         names = archive.namelist()
@@ -2238,19 +2394,19 @@ def restore_backup_bytes(data: bytes, key: bytes) -> None:
         try:
             # Restore database
             db_content = archive.read("data/vault.db")
-            DB_PATH.write_bytes(db_content)
+            get_db_path().write_bytes(db_content)
             
             if "data/flask.secret" in names:
-                FLASK_SECRET_PATH.write_bytes(archive.read("data/flask.secret"))
+                get_flask_secret_path().write_bytes(archive.read("data/flask.secret"))
 
             # Clean and restore encrypted files
-            for file_path in FILES_DIR.glob("*"):
+            for file_path in get_files_dir().glob("*"):
                 if file_path.is_file() and file_path.name != ".gitkeep":
                     file_path.unlink()
             
             for name in names:
                 if name.startswith("encrypted_files/") and not name.endswith("/"):
-                    target = FILES_DIR / Path(name).name
+                    target = get_files_dir() / Path(name).name
                     target.write_bytes(archive.read(name))
         except PermissionError:
             raise RuntimeError("Database file is locked. Please close any other tabs/apps and try again.")
@@ -2314,7 +2470,7 @@ def reencrypt_vault(old_key: bytes, new_key: bytes) -> None:
         )
 
     for row in fetch_all("SELECT * FROM documents"):
-        file_path = FILES_DIR / row["stored_name"]
+        file_path = get_files_dir() / row["stored_name"]
         if file_path.exists():
             plain = decrypt_bytes(file_path.read_bytes(), old_key)
             file_path.write_bytes(encrypt_bytes(plain, new_key))

@@ -1,4 +1,4 @@
-# 🛡️ SecureVault (Elite Edition) v2.2.0
+# 🛡️ SecureVault (Elite Edition) v2.2.1
 
 ![Security Level](https://img.shields.io/badge/Security_Level-Extreme-red?style=for-the-badge&logo=shield)
 ![Encryption](https://img.shields.io/badge/Encryption-AES--256--GCM-blue?style=for-the-badge)
@@ -12,9 +12,14 @@
 ## 🚀 Elite Feature Suite
 
 ### 🔐 Multi-Tier Cryptography
+*   **Dual-Factor Physical Keys:** Use an optional high-entropy **Keyfile** to secure your vault. Decryption is mathematically impossible without both the password and the physical file.
 *   **Bit-Level Sealing:** All data is encrypted using **AES-256-GCM** authenticated encryption.
 *   **Fortified Key Derivation:** Employs **Argon2id** (the winner of the Password Hashing Competition) to derive keys, making brute-force attacks mathematically infeasible.
-*   **Recovery Protocol Kit:** A fail-safe emergency system using an offline master key phrase to recover data if the master password is lost.
+*   **Recovery Protocol Kit:** A fail-safe emergency system using an offline master key phrase to recover data if the master password is lost. Now supports **direct backup restoration via phrase**.
+
+### 📂 Full Portability & Topology
+*   **Custom Vault Root:** Choose exactly where your secrets live. Mount vaults from USB drives, air-gapped partitions, or cloud-synced local folders.
+*   **Dynamic Path Resolution:** Move the entire application folder anywhere; the system automatically adapts its environment pulse.
 
 ### ☁️ Triple-Cloud Redundancy
 Secure your vault with one-click encrypted exports to global providers:
@@ -24,7 +29,7 @@ Secure your vault with one-click encrypted exports to global providers:
 
 ### 🛡️ Active System Defense
 *   **🚨 Panic Mode Protocol:** A hidden emergency override that instantly moves all active data to the trash and locks the vault.
-*   **👤 Privacy Shield:** Optional auto-lock protocol that triggers immediately when switching browser tabs or minimizing the window.
+*   **👤 Privacy Shield 2.0:** Navigation-aware auto-lock protocol that triggers immediately when switching browser tabs or minimizing the window.
 *   **🔗 Ephemeral Secret Sharing:** Create encrypted, self-destructing links to share sensitive notes without ever exposing them to a server.
 
 ### 📂 Advanced Data Architecture

@@ -27,6 +27,10 @@ build/
 dist/
 *.spec
 
+# User Configuration & Physical Keys
+vault_pointer.json
+*.key
+
 # Custom Security Scripts
 init_admin.php
 database_setup.txt

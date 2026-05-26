@@ -66,6 +66,9 @@
                 <a href="{{ url_for('health') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if request.endpoint == 'health' %}active{% else %}text-slate-400 hover:text-white{% endif %}">
                     <i class="fa-solid fa-heart-pulse w-5"></i> Vault Health
                 </a>
+                <a href="{{ url_for('maintenance') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if request.endpoint == 'maintenance' %}active{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-cloud-arrow-up w-5 text-green-400"></i> Backup & Sync
+                </a>
                 <a href="{{ url_for('settings') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if request.endpoint in ['settings', 'change_master_password', 'recovery_kit'] %}active{% else %}text-slate-400 hover:text-white{% endif %}">
                     <i class="fa-solid fa-gears w-5"></i> Settings
                 </a>
@@ -75,9 +78,6 @@
             </nav>
 
             <div class="p-6 border-t border-white/5 space-y-4">
-                <a href="{{ url_for('backup') }}" class="flex items-center justify-center gap-2 w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs transition">
-                    <i class="fa-solid fa-download"></i> EXPORT BACKUP
-                </a>
                 <a href="{{ url_for('lock') }}" class="flex items-center justify-center gap-2 w-full py-3 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-xl font-bold text-xs transition border border-red-500/20">
                     <i class="fa-solid fa-lock"></i> LOCK VAULT
                 </a>
@@ -169,11 +169,38 @@
             }
         }
 
-        // Privacy Shield: Auto-lock on blur
+        // Privacy Shield: Auto-lock on tab switch
         {% if lock_on_blur and configured and request.endpoint not in ['login', 'setup', 'recover'] %}
+        let isNavigating = false;
+        
+        // Detect if the user is clicking a link or submitting a form to another page in the app
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            const submit = e.target.closest('button[type="submit"]');
+            if (link || submit) {
+                isNavigating = true;
+            }
+        });
+
+        // Fallback for form submissions
+        document.addEventListener('submit', () => {
+            isNavigating = true;
+        });
+
+        // The most reliable way to detect navigation away from the current page
+        window.addEventListener('beforeunload', () => {
+            isNavigating = true;
+        });
+
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') {
-                window.location.href = "{{ url_for('lock') }}";
+            // Only lock if the tab is truly hidden AND we aren't just navigating to another vault page
+            if (document.visibilityState === 'hidden' && !isNavigating) {
+                // Add a tiny delay to ensure navigation events have processed
+                setTimeout(() => {
+                    if (!isNavigating) {
+                        window.location.href = "{{ url_for('lock') }}";
+                    }
+                }, 200);
             }
         });
         {% endif %}

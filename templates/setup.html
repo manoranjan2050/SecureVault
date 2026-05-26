@@ -25,7 +25,14 @@
             <p class="text-xs text-slate-500 font-medium leading-relaxed text-center mb-6">
                 Define your master cryptographic key. This password is the <span class="text-blue-400 font-bold">only way</span> to access your data.
             </p>
-            <form class="space-y-6" method="post">
+            <form class="space-y-6" method="post" enctype="multipart/form-data">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Vault Storage Root (Optional)</label>
+                    <input name="vault_root" placeholder="e.g. D:\MySecureVault"
+                           class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 transition-all font-mono text-xs">
+                    <p class="text-[8px] text-slate-600 ml-1 uppercase font-bold tracking-tighter">Default: {{ base_dir }}</p>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-2">
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Master Password</label>
@@ -39,6 +46,19 @@
                                class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all"
                                placeholder="••••••••••••">
                     </div>
+                </div>
+
+                <!-- Keyfile Section -->
+                <div class="p-6 bg-purple-600/5 border border-purple-500/10 rounded-[2.5rem] space-y-4">
+                    <div class="flex items-center justify-between">
+                        <label class="text-[10px] font-black text-purple-400 uppercase tracking-widest">Optional Keyfile</label>
+                        <button type="button" onclick="generateKeyfile()" class="text-[9px] font-black text-white bg-purple-600 px-3 py-1 rounded-full hover:bg-purple-500 transition-colors uppercase tracking-widest">
+                            Generate New
+                        </button>
+                    </div>
+                    <input type="file" name="keyfile" id="setup-keyfile-input"
+                           class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-purple-600/20 file:text-purple-400 hover:file:bg-purple-600/30 cursor-pointer transition-all">
+                    <p class="text-[9px] text-slate-600 leading-tight italic">A keyfile adds another layer of security. If used, you will need BOTH the password and this file to unlock your vault.</p>
                 </div>
 
                 <div class="space-y-2">
@@ -60,11 +80,25 @@
             </p>
             <form class="space-y-6" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="restore_vault" value="1">
-                
+
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Backup File (.svault)</label>
-                    <input type="file" name="backup_file" accept=".svault" required id="restore-file-input"
-                           class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 transition-all file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-600 file:text-white hover:file:bg-blue-500">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Vault Storage Root (Optional)</label>
+                    <input name="vault_root" placeholder="e.g. D:\MySecureVault"
+                           class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 transition-all font-mono text-xs">
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Backup File (.svault)</label>
+                        <input type="file" name="backup_file" accept=".svault" required id="restore-file-input"
+                               class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 transition-all file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-600 file:text-white hover:file:bg-blue-500">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-1">Keyfile (If applicable)</label>
+                        <input type="file" name="keyfile"
+                               class="w-full px-5 py-4 bg-slate-950/50 border border-purple-500/20 rounded-2xl text-white focus:outline-none focus:border-purple-500/50 transition-all file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-purple-600 file:text-white hover:file:bg-purple-500">
+                    </div>
                 </div>
 
                 <div class="space-y-2">
@@ -107,6 +141,26 @@
         </div>
 
         <script>
+        function generateKeyfile() {
+            // Generate 64 bytes of high-entropy random data
+            const array = new Uint8Array(64);
+            window.crypto.getRandomValues(array);
+            
+            // Create a blob and download it
+            const blob = new Blob([array], { type: 'application/octet-stream' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            a.href = url;
+            a.download = `SecureVault_Keyfile_${timestamp}.key`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            alert("High-entropy keyfile generated and downloaded. Please select it in the file input to continue.");
+        }
+
         // Check if file starts with MAGIC
         document.getElementById('restore-file-input').addEventListener('change', function(e) {
             const file = e.target.files[0];
