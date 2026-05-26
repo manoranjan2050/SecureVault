@@ -1,23 +1,57 @@
 {% extends "base.html" %}
 {% block title %}Audit Log - SecureVault{% endblock %}
-{% block heading %}Audit Log{% endblock %}
+{% block heading %}Security Ledger{% endblock %}
 {% block content %}
-<section class="table-panel">
-    <table>
-        <thead>
-            <tr><th>Time</th><th>Event</th><th>Message</th></tr>
-        </thead>
-        <tbody>
-            {% for entry in entries %}
-            <tr>
-                <td>{{ entry.created_at }}</td>
-                <td>{{ entry.event_type }}</td>
-                <td>{{ entry.message }}</td>
-            </tr>
-            {% else %}
-            <tr><td colspan="3" class="empty">No audit events yet.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</section>
+<div class="space-y-10 animate-in fade-in duration-500">
+    <section class="glass rounded-[3rem] border-white/5 overflow-hidden shadow-2xl">
+        <div class="p-8 border-b border-white/5 flex justify-between items-center bg-slate-900/50">
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                <i class="fa-solid fa-clipboard-list text-blue-500"></i> Event Protocol History
+            </h3>
+            <span class="px-3 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-black rounded-full border border-blue-500/20 uppercase tracking-widest">
+                Read Only Access
+            </span>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-slate-950/50 border-b border-white/5">
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-600 uppercase tracking-widest">Protocol Timestamp</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-600 uppercase tracking-widest">Event Signature</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-600 uppercase tracking-widest">System Message</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    {% for entry in entries %}
+                    <tr class="hover:bg-white/[0.01] transition-colors group">
+                        <td class="px-8 py-6 whitespace-nowrap">
+                            <span class="text-xs font-bold text-slate-500 font-mono tracking-tighter">{{ entry.created_at }}</span>
+                        </td>
+                        <td class="px-8 py-6">
+                            <span class="px-2.5 py-1 rounded-lg bg-slate-900 text-[9px] font-black tracking-widest uppercase border border-white/5 {% if 'DELETE' in entry.event_type or 'PURGE' in entry.event_type %}text-red-500 border-red-500/20{% elif 'SUCCESS' in entry.event_type or 'UNLOCK' in entry.event_type %}text-green-500 border-green-500/20{% else %}text-blue-400 border-blue-500/20{% endif %}">
+                                {{ entry.event_type }}
+                            </span>
+                        </td>
+                        <td class="px-8 py-6">
+                            <p class="text-sm font-medium text-slate-400 group-hover:text-slate-200 transition-colors">{{ entry.message }}</p>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="px-8 py-32 text-center">
+                            <div class="w-16 h-16 bg-slate-900 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 border border-white/5 opacity-50">
+                                <i class="fa-solid fa-fingerprint text-2xl text-slate-700"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-white mb-1 italic">No records generated</h3>
+                            <p class="text-xs text-slate-500 italic">Security events will be logged here automatically.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
 {% endblock %}
+

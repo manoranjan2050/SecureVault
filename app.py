@@ -15,7 +15,10 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+import cv2
+import numpy as np
+from PIL import Image
+from urllib.parse import parse_qs, urlparse, unquote
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from argon2.low_level import Type, hash_secret_raw
@@ -665,17 +668,25 @@ def create_app() -> Flask:
         key = require_key()
         if request.method == "POST":
             now = now_iso()
+            password = request.form.get("password", "")
+            confirm = request.form.get("confirm_password", "")
+            if password != confirm:
+                flash("Passwords do not match.", "error")
+                return render_template("password_form.html", entry=None)
+                
             execute(
                 """
                 INSERT INTO passwords
-                    (title, website, username, encrypted_password, encrypted_notes, tags, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (title, website, username, email_id, mobile_no, encrypted_password, encrypted_notes, tags, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     request.form.get("title", "").strip(),
                     request.form.get("website", "").strip(),
                     request.form.get("username", "").strip(),
-                    encrypt_text(request.form.get("password", ""), key),
+                    request.form.get("email_id", "").strip(),
+                    request.form.get("mobile_no", "").strip(),
+                    encrypt_text(password, key),
                     encrypt_text(request.form.get("notes", ""), key),
                     request.form.get("tags", "").strip(),
                     now,
@@ -699,19 +710,27 @@ def create_app() -> Flask:
         entry["notes"] = decrypt_text(row["encrypted_notes"], key)
 
         if request.method == "POST":
+            password = request.form.get("password", "")
+            confirm = request.form.get("confirm_password", "")
+            if password != confirm:
+                flash("Passwords do not match.", "error")
+                return render_template("password_form.html", entry=entry)
+                
             save_password_history(key, row)
             execute(
                 """
                 UPDATE passwords
-                SET title = ?, website = ?, username = ?, encrypted_password = ?,
-                    encrypted_notes = ?, tags = ?, updated_at = ?
+                SET title = ?, website = ?, username = ?, email_id = ?, mobile_no = ?,
+                    encrypted_password = ?, encrypted_notes = ?, tags = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
                     request.form.get("title", "").strip(),
                     request.form.get("website", "").strip(),
                     request.form.get("username", "").strip(),
-                    encrypt_text(request.form.get("password", ""), key),
+                    request.form.get("email_id", "").strip(),
+                    request.form.get("mobile_no", "").strip(),
+                    encrypt_text(password, key),
                     encrypt_text(request.form.get("notes", ""), key),
                     request.form.get("tags", "").strip(),
                     now_iso(),
@@ -1191,7 +1210,162 @@ def create_app() -> Flask:
     def logout():
         return redirect(url_for("lock"))
 
+    @app.route("/totp/import-qr", methods=["POST"])
+    def import_totp_qr():
+        key = require_key()
+        uploaded = request.files.get("qr_code")
+        if not uploaded or not uploaded.filename:
+            flash("Choose a QR code image first.", "error")
+            return redirect(url_for("totp_accounts"))
+
+        try:
+            # Read image and decode QR
+            file_bytes = np.frombuffer(uploaded.read(), np.uint8)
+            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+            if img is None:
+                flash("Could not read image file.", "error")
+                return redirect(url_for("totp_accounts"))
+
+            detector = cv2.QRCodeDetector()
+            qr_data, _, _ = detector.detectAndDecode(img)
+            
+            if not qr_data:
+                flash("No QR code detected in image.", "error")
+                return redirect(url_for("totp_accounts"))
+
+            count = 0
+            # Handle Migration URL
+            if qr_data.startswith("otpauth-migration://"):
+                parsed = urlparse(qr_data)
+                params = parse_qs(parsed.query)
+                data_b64 = params.get("data", [""])[0]
+                
+                accounts = decode_migration_payload(data_b64)
+                for acc in accounts:
+                    save_totp_account(acc, key)
+                    count += 1
+                
+                flash(f"Successfully imported {count} accounts from migration QR.", "success")
+            
+            # Handle Standard TOTP URL
+            elif qr_data.startswith("otpauth://"):
+                acc = parse_standard_otp_url(qr_data)
+                if acc:
+                    save_totp_account(acc, key)
+                    flash("Account imported from QR code.", "success")
+                else:
+                    flash("Invalid TOTP URL in QR code.", "error")
+            
+            else:
+                flash("QR code does not contain a valid TOTP setup link.", "error")
+
+        except Exception as e:
+            flash(f"Import failed: {str(e)}", "error")
+
+        return redirect(url_for("totp_accounts"))
+
+    def save_totp_account(acc, key):
+        now = now_iso()
+        execute(
+            """
+            INSERT INTO totp_accounts
+                (issuer, account_name, encrypted_secret, digits, period, algorithm, notes, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                acc.get('issuer', '').strip(),
+                acc.get('name', '').strip(),
+                encrypt_text(acc['secret'], key),
+                acc.get('digits', 6),
+                acc.get('period', 30),
+                acc.get('algorithm', 'SHA1'),
+                acc.get('notes', '').strip(),
+                now,
+                now,
+            ),
+        )
+
     return app
+
+
+def decode_migration_payload(data_b64: str) -> list[dict]:
+    # Proto Varint Reader
+    def read_varint(buffer, offset):
+        res, shift = 0, 0
+        while True:
+            b = buffer[offset]
+            res |= (b & 0x7F) << shift
+            offset += 1
+            if not (b & 0x80): break
+            shift += 7
+        return res, offset
+
+    # Proto Field Parser
+    def parse_params(data):
+        acc = {'secret': '', 'name': '', 'issuer': '', 'algorithm': 'SHA1', 'digits': 6, 'period': 30}
+        pos = 0
+        while pos < len(data):
+            tag_byte = data[pos]
+            tag, wire = tag_byte >> 3, tag_byte & 0x07
+            pos += 1
+            if tag == 1 and wire == 2: # secret
+                L, pos = read_varint(data, pos)
+                acc['secret'] = base64.b32encode(data[pos:pos+L]).decode('ascii').replace('=', '')
+                pos += L
+            elif tag == 2 and wire == 2: # name
+                L, pos = read_varint(data, pos)
+                acc['name'] = data[pos:pos+L].decode('utf-8')
+                pos += L
+            elif tag == 3 and wire == 2: # issuer
+                L, pos = read_varint(data, pos)
+                acc['issuer'] = data[pos:pos+L].decode('utf-8')
+                pos += L
+            elif tag == 4 and wire == 0: # algo
+                v, pos = read_varint(data, pos)
+                acc['algorithm'] = {1:'SHA1', 2:'SHA256', 3:'SHA512', 4:'MD5'}.get(v, 'SHA1')
+            elif tag == 5 and wire == 0: # digits
+                v, pos = read_varint(data, pos)
+                acc['digits'] = 8 if v == 2 else 6
+            else: # Skip
+                if wire == 0: _, pos = read_varint(data, pos)
+                elif wire == 2: L, pos = read_varint(data, pos); pos += L
+        return acc
+
+    try:
+        raw = base64.b64decode(unquote(data_b64))
+        accounts = []
+        pos = 0
+        while pos < len(raw):
+            tag_byte = raw[pos]
+            tag, wire = tag_byte >> 3, tag_byte & 0x07
+            pos += 1
+            if tag == 1 and wire == 2:
+                L, pos = read_varint(raw, pos)
+                accounts.append(parse_params(raw[pos:pos+L]))
+                pos += L
+            else:
+                if wire == 0: _, pos = read_varint(raw, pos)
+                elif wire == 2: L, pos = read_varint(raw, pos); pos += L
+        return accounts
+    except: return []
+
+
+def parse_standard_otp_url(url: str) -> dict | None:
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme != 'otpauth': return None
+        params = {k: v[0] for k, v in parse_qs(parsed.query).items()}
+        label = unquote(parsed.path[1:])
+        issuer, name = label.split(':', 1) if ':' in label else ('', label)
+        return {
+            'secret': params.get('secret', ''),
+            'name': name.strip(),
+            'issuer': params.get('issuer', issuer).strip(),
+            'digits': int(params.get('digits', 6)),
+            'period': int(params.get('period', 30)),
+            'algorithm': params.get('algorithm', 'SHA1').upper()
+        }
+    except: return None
 
 
 def load_or_create_flask_secret() -> str:
@@ -1293,6 +1467,10 @@ def init_db() -> None:
         )
         ensure_column(db, "financial_accounts", "favorite", "INTEGER NOT NULL DEFAULT 0")
         ensure_column(db, "documents", "mime_type", "TEXT")
+        ensure_column(db, "passwords", "email_id", "TEXT")
+        ensure_column(db, "passwords", "mobile_no", "TEXT")
+        ensure_column(db, "password_history", "email_id", "TEXT")
+        ensure_column(db, "password_history", "mobile_no", "TEXT")
 
 
 def connect() -> sqlite3.Connection:
@@ -1466,7 +1644,13 @@ def normalize_totp_secret(value: str) -> str:
 
 
 def is_valid_totp_secret(secret: str) -> bool:
+    if not secret:
+        return False
     try:
+        # Add padding if missing (Base32 length must be a multiple of 8)
+        missing_padding = len(secret) % 8
+        if missing_padding:
+            secret += "=" * (8 - missing_padding)
         base64.b32decode(secret, casefold=True)
     except Exception:
         return False
@@ -1474,7 +1658,12 @@ def is_valid_totp_secret(secret: str) -> bool:
 
 
 def generate_totp(secret: str, digits: int = 6, period: int = 30, algorithm: str = "SHA1") -> str:
-    key = base64.b32decode(normalize_totp_secret(secret), casefold=True)
+    secret = normalize_totp_secret(secret)
+    missing_padding = len(secret) % 8
+    if missing_padding:
+        secret += "=" * (8 - missing_padding)
+    
+    key = base64.b32decode(secret, casefold=True)
     counter = int(time.time()) // int(period)
     digest_name = algorithm.lower()
     digest = getattr(hashlib, digest_name, hashlib.sha1)
@@ -1560,14 +1749,16 @@ def save_password_history(key: bytes, row: sqlite3.Row) -> None:
     execute(
         """
         INSERT INTO password_history
-            (password_id, title, website, username, encrypted_password, encrypted_notes, tags, changed_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (password_id, title, website, username, email_id, mobile_no, encrypted_password, encrypted_notes, tags, changed_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             row["id"],
             row["title"],
             row["website"],
             row["username"],
+            row.get("email_id", ""),
+            row.get("mobile_no", ""),
             row["encrypted_password"],
             row["encrypted_notes"],
             row["tags"],
@@ -1599,13 +1790,15 @@ def restore_trash_item(key: bytes, row: sqlite3.Row) -> None:
         execute(
             """
             INSERT INTO passwords
-                (title, website, username, encrypted_password, encrypted_notes, tags, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (title, website, username, email_id, mobile_no, encrypted_password, encrypted_notes, tags, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 payload.get("title", ""),
                 payload.get("website", ""),
                 payload.get("username", ""),
+                payload.get("email_id", ""),
+                payload.get("mobile_no", ""),
                 payload.get("encrypted_password", ""),
                 payload.get("encrypted_notes", ""),
                 payload.get("tags", ""),

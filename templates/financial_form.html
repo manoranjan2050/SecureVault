@@ -1,27 +1,62 @@
 {% extends "base.html" %}
 {% block title %}{{ type_config.label }} - SecureVault{% endblock %}
-{% block heading %}{{ "Edit" if entry else "Add" }} {{ type_config.label }}{% endblock %}
+{% block heading %}{{ "Refine Asset Record" if entry else "New Asset Entry" }}{% endblock %}
 {% block content %}
-<form class="form-panel wide-form" method="post">
-    <label class="check-row">
-        <input type="checkbox" name="favorite" {% if entry and entry.favorite %}checked{% endif %}>
-        Mark as important / favorite
-    </label>
-    <div class="form-grid">
-        {% for field_name, label, field_type in type_config.fields %}
-        <label class="{% if field_type == 'textarea' %}span-2{% endif %}">
-            {{ label }}
-            {% if field_type == 'textarea' %}
-            <textarea name="{{ field_name }}" rows="4">{{ entry.data[field_name] if entry else '' }}</textarea>
-            {% else %}
-            <input name="{{ field_name }}" type="{{ field_type }}" value="{{ entry.data[field_name] if entry else '' }}">
-            {% endif %}
-        </label>
-        {% endfor %}
+<div class="max-w-4xl mx-auto animate-in slide-in-from-bottom duration-500">
+    <div class="glass p-8 md:p-12 rounded-[3.5rem] border-white/5 relative overflow-hidden">
+        <!-- Decoration -->
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-orange-600/10 rounded-full blur-3xl"></div>
+        
+        <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-orange-600 flex items-center justify-center text-white text-2xl shadow-xl shadow-orange-500/20">
+                    <i class="fa-solid fa-vault"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-black text-white leading-none mb-1">{{ type_config.label }}</h2>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Encrypted Asset Registry</p>
+                </div>
+            </div>
+            <label class="flex items-center gap-3 px-6 py-3 bg-slate-950/50 border border-white/5 rounded-2xl cursor-pointer group hover:border-orange-500/30 transition-all">
+                <input type="checkbox" name="favorite" {% if entry and entry.favorite %}checked{% endif %} class="w-5 h-5 accent-orange-500 rounded-md">
+                <span class="text-xs font-black text-slate-400 group-hover:text-white transition-colors uppercase tracking-widest">Mark as Important</span>
+            </label>
+        </div>
+
+        <form class="space-y-8" method="post">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for field_name, label, field_type in type_config.fields %}
+                <div class="space-y-2 {% if field_type == 'textarea' %}md:col-span-2{% endif %}">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">{{ label }}</label>
+                    
+                    {% if field_type == 'textarea' %}
+                    <textarea name="{{ field_name }}" rows="5"
+                              class="w-full px-6 py-4 bg-slate-950/50 border border-white/5 rounded-[2rem] text-white focus:outline-none focus:border-orange-500/50 focus:ring-4 focus:ring-orange-500/10 transition-all placeholder:text-slate-800"
+                              placeholder="Describe details accurately...">{{ entry.data[field_name] if entry else '' }}</textarea>
+                    {% else %}
+                    <div class="relative group">
+                        <input name="{{ field_name }}" type="{{ field_type }}" value="{{ entry.data[field_name] if entry else '' }}"
+                               class="w-full px-6 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-orange-500/50 focus:ring-4 focus:ring-orange-500/10 transition-all font-medium">
+                        {% if field_type == 'password' %}
+                        <i class="fa-solid fa-mask absolute right-5 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-orange-500 transition-colors"></i>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-4 pt-10 border-t border-white/5">
+                <button class="flex-1 py-5 bg-orange-600 hover:bg-orange-500 text-white font-black rounded-[2rem] shadow-2xl shadow-orange-500/20 transition-all transform active:scale-[0.98] uppercase tracking-[0.3em] text-xs" type="submit">
+                    <i class="fa-solid fa-lock-hashtag mr-2"></i> COMMIT TO VAULT
+                </button>
+                <a class="flex-1 py-5 bg-slate-900/50 hover:bg-slate-800 text-slate-400 hover:text-white font-black rounded-[2rem] text-center transition-all uppercase tracking-[0.3em] text-xs border border-white/5" 
+                   href="{{ url_for('financial_accounts') }}">
+                    ABORT CHANGES
+                </a>
+            </div>
+        </form>
     </div>
-    <div class="form-actions">
-        <button class="button primary" type="submit">Save Securely</button>
-        <a class="button ghost" href="{{ url_for('financial_accounts') }}">Cancel</a>
-    </div>
-</form>
+</div>
 {% endblock %}
+

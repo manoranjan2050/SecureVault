@@ -1,0 +1,30 @@
+# Python System Files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment Files
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Local Data (Strictly Private)
+data/*.db
+data/flask.secret
+encrypted_files/*
+!encrypted_files/.gitkeep
+backups/*.svault
+backups/*.json
+
+# IDE & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build & Dist
+build/
+dist/
+*.spec

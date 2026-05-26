@@ -1,22 +1,82 @@
 {% extends "base.html" %}
 {% block title %}Recovery Kit - SecureVault{% endblock %}
-{% block heading %}Recovery Kit{% endblock %}
+{% block heading %}Vault Continuity Asset{% endblock %}
 {% block content %}
-<section class="panel recovery-kit">
-    <p class="eyebrow">Print or save offline</p>
-    <h2>SecureVault Recovery Kit</h2>
-    <p class="muted">This phrase can recover your vault if you forget the master password. Store it offline in a safe place.</p>
-    {% if recovery_phrase %}
-    <div class="recovery-code">{{ recovery_phrase }}</div>
-    <button class="button primary" onclick="window.print()">Print Recovery Kit</button>
-    {% else %}
-    <div class="hint-box">Recovery phrase is shown only once. Generate a new kit from Security Settings if needed.</div>
-    {% endif %}
-    <div class="kit-meta">
-        <p><strong>Created:</strong> {{ created_at }}</p>
-        <p><strong>Developer:</strong> {{ developer_name }}</p>
-        <p><strong>GitHub:</strong> {{ developer_github }}</p>
+<div class="max-w-4xl mx-auto animate-in fade-in duration-700 print:bg-white print:text-black print:p-0">
+    <div class="glass p-8 md:p-12 rounded-[3.5rem] border-white/5 relative overflow-hidden print:border-none print:shadow-none print:bg-white">
+        <!-- Print Header -->
+        <div class="flex justify-between items-start mb-12 print:mb-8">
+            <div>
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 print:text-gray-500">Security Documentation</p>
+                <h1 class="text-4xl font-black text-white tracking-tighter print:text-black">Recovery <span class="text-gradient print:text-black">Protocol Kit</span></h1>
+            </div>
+            <div class="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-2xl shadow-xl shadow-blue-500/20 print:shadow-none">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+        </div>
+
+        <div class="space-y-10">
+            <div class="p-8 bg-slate-950/50 border border-white/5 rounded-[2.5rem] relative overflow-hidden print:bg-gray-50 print:border-gray-200">
+                <h3 class="text-xs font-black text-blue-400 uppercase tracking-widest mb-4 print:text-blue-600">OFFLINE MASTER KEY PHRASE</h3>
+                
+                {% if recovery_phrase %}
+                <div class="py-8 px-6 bg-slate-900 border border-white/10 rounded-3xl text-2xl md:text-3xl font-mono font-black text-white text-center leading-relaxed tracking-wider print:bg-white print:text-black print:border-gray-300 select-all">
+                    {{ recovery_phrase }}
+                </div>
+                <div class="mt-8 flex flex-col md:flex-row items-center justify-between gap-6 print:hidden">
+                    <p class="text-xs text-slate-500 font-medium italic max-w-sm">
+                        <i class="fa-solid fa-triangle-exclamation text-orange-500 mr-2"></i>
+                        Store this phrase physically. If the master password is lost, this is the final redundancy for data decryption.
+                    </p>
+                    <button class="px-10 py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 transition-all transform active:scale-95 uppercase tracking-widest text-xs flex items-center gap-2" 
+                            onclick="window.print()">
+                        <i class="fa-solid fa-print"></i> PRINT TO PHYSICAL MEDIA
+                    </button>
+                </div>
+                {% else %}
+                <div class="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-center font-bold italic">
+                    <i class="fa-solid fa-eye-slash mr-2"></i> This phrase is only displayed once for maximum entropy security.
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-4">
+                    <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Asset Metadata</h4>
+                    <div class="space-y-2">
+                        <div class="flex justify-between p-4 bg-white/5 rounded-xl border border-white/5 print:border-gray-200">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Created On</span>
+                            <span class="text-xs font-black text-slate-200 print:text-black">{{ created_at }}</span>
+                        </div>
+                        <div class="flex justify-between p-4 bg-white/5 rounded-xl border border-white/5 print:border-gray-200">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Vault Node</span>
+                            <span class="text-xs font-black text-slate-200 print:text-black">SECURE_VAULT_LOCAL</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Developer Identity</h4>
+                    <div class="space-y-2">
+                        <div class="flex justify-between p-4 bg-white/5 rounded-xl border border-white/5 print:border-gray-200">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Signature</span>
+                            <span class="text-xs font-black text-slate-200 print:text-black">{{ developer_name }}</span>
+                        </div>
+                        <div class="flex justify-between p-4 bg-white/5 rounded-xl border border-white/5 print:border-gray-200">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Archive ID</span>
+                            <span class="text-xs font-black text-blue-500 print:text-blue-700 underline">{{ developer_github }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-10 border-t border-white/5 flex justify-center print:hidden">
+                <a class="px-8 py-3 bg-slate-900/50 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl text-xs font-black tracking-widest transition border border-white/5" 
+                   href="{{ url_for('dashboard') }}">
+                    RETURN TO DASHBOARD
+                </a>
+            </div>
+        </div>
     </div>
-    <a class="button ghost" href="{{ url_for('dashboard') }}">Back to Dashboard</a>
-</section>
+</div>
 {% endblock %}
+

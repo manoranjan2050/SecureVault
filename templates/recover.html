@@ -1,17 +1,66 @@
 {% extends "base.html" %}
 {% block title %}Recover SecureVault{% endblock %}
 {% block content %}
-<section class="auth-wrap">
-    <form class="auth-card" method="post">
-        <div class="auth-mark">SV</div>
-        <p class="eyebrow">Offline recovery</p>
-        <h1>Recover Vault</h1>
-        <p class="muted">Use your printed recovery phrase to set a new master password.</p>
-        <label>Recovery phrase<input name="recovery_phrase" required autofocus></label>
-        <label>New master password<input type="password" name="new_password" minlength="10" required></label>
-        <label>Confirm new password<input type="password" name="confirm_password" minlength="10" required></label>
-        <button class="button primary full" type="submit">Recover Vault</button>
-        <a class="button ghost full" href="{{ url_for('login') }}">Back to Login</a>
-    </form>
+<section class="min-h-[80vh] flex items-center justify-center p-4">
+    <div class="glass p-10 md:p-12 rounded-[3.5rem] w-full max-w-xl shadow-2xl border-white/10 relative overflow-hidden animate-in zoom-in duration-500">
+        <!-- Decoration -->
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-purple-600/10 rounded-full blur-3xl"></div>
+
+        <div class="text-center mb-10">
+            <div class="w-20 h-20 rounded-[2rem] bg-purple-600 mx-auto flex items-center justify-center shadow-xl shadow-purple-500/20 mb-6">
+                <i class="fa-solid fa-life-ring text-white text-3xl"></i>
+            </div>
+            <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Protocol Override</p>
+            <h1 class="text-4xl font-black text-white tracking-tighter">Emergency <span class="text-gradient">Recovery</span></h1>
+            <p class="mt-4 text-xs text-slate-500 font-medium leading-relaxed max-w-sm mx-auto">
+                Use your <span class="text-purple-400 font-bold underline">Offline Recovery Phrase</span> to re-establish access and define a new master key.
+            </p>
+        </div>
+
+        <form class="space-y-6" method="post">
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Secret Recovery Phrase</label>
+                <input name="recovery_phrase" required autofocus
+                       class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white font-mono focus:outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-800"
+                       placeholder="word1 word2 word3 ...">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">New Master Key</label>
+                    <input type="password" name="new_password" minlength="12" required
+                           class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-800"
+                           placeholder="••••••••••••">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirm Identity</label>
+                    <input type="password" name="confirm_password" minlength="12" required
+                           class="w-full px-5 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-800"
+                           placeholder="••••••••••••">
+                </div>
+            </div>
+
+            <button class="w-full py-5 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-[2rem] shadow-2xl shadow-purple-500/20 transition-all transform active:scale-[0.98] uppercase tracking-[0.2em] text-xs mt-6" type="submit">
+                RE-INITIALIZE VAULT ACCESS
+            </button>
+
+            <div class="pt-6 text-center border-t border-white/5 space-y-6">
+                <a class="text-xs font-bold text-slate-500 hover:text-white transition-colors block" href="{{ url_for('login') }}">
+                    <i class="fa-solid fa-arrow-left-long mr-2"></i> Abort and return to Login
+                </a>
+                <div class="flex flex-col items-center gap-3">
+                    <div class="flex items-center gap-3">
+                        <img src="https://github.com/manoranjan2050.png" class="w-8 h-8 rounded-full border border-blue-500/50" alt="Manoranjan">
+                        <div class="text-left">
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Developed by</p>
+                            <a href="https://github.com/manoranjan2050" target="_blank" class="text-sm font-bold text-white hover:text-blue-400 transition-colors">Manoranjan</a>
+                        </div>
+                    </div>
+                    <a href="https://manoranjan.dev" target="_blank" class="text-[10px] font-bold text-blue-500 hover:underline tracking-widest uppercase">manoranjan.dev</a>
+                </div>
+            </div>
+        </form>
+    </div>
 </section>
 {% endblock %}
+

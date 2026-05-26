@@ -1,34 +1,75 @@
 {% extends "base.html" %}
 {% block title %}Secure Notes - SecureVault{% endblock %}
-{% block heading %}Secure Notes{% endblock %}
+{% block heading %}Encrypted Thoughts{% endblock %}
 {% block content %}
-<section class="toolbar">
-    <form method="get" class="search">
-        <input type="search" name="q" value="{{ search }}" placeholder="Search notes or categories">
-    </form>
-    <a class="button primary" href="{{ url_for('add_note') }}">Add Note</a>
-</section>
-
-<section class="cards">
-    {% for entry in entries %}
-    <article class="vault-card">
-        <div class="card-head">
-            <div>
-                <h2>{{ entry.title }}</h2>
-                <p>{{ entry.category or "Private" }}</p>
+<div class="space-y-8 animate-in fade-in duration-500 text-pink-400">
+    <!-- Action Toolbar -->
+    <section class="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center">
+        <form method="get" class="flex flex-wrap items-center gap-3 flex-1 w-full lg:w-auto">
+            <div class="relative flex-1 min-w-[300px]">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                <input type="search" name="q" value="{{ search }}" 
+                       class="w-full pl-12 pr-4 py-3 bg-slate-900 border border-white/5 rounded-xl text-sm focus:outline-none focus:border-pink-500/50 transition-all text-white" 
+                       placeholder="Search through your encrypted context...">
             </div>
+            <button class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition flex items-center gap-2" type="submit">
+                <i class="fa-solid fa-filter"></i>
+            </button>
+        </form>
+        <a class="px-6 py-3 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-lg shadow-pink-500/20" href="{{ url_for('add_note') }}">
+            <i class="fa-solid fa-plus"></i> NEW NOTE
+        </a>
+    </section>
+
+    <!-- Notes Grid -->
+    <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {% for entry in entries %}
+        <article class="glass group p-8 rounded-[2.5rem] border-white/5 hover:border-pink-500/30 transition-all duration-300 relative overflow-hidden flex flex-col h-[320px]">
+            <!-- Decoration -->
+            <div class="absolute -top-10 -right-10 w-24 h-24 bg-pink-600/5 rounded-full blur-2xl group-hover:bg-pink-600/10 transition-all"></div>
+            
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 class="text-xl font-black text-white tracking-tight leading-none mb-1 group-hover:text-pink-400 transition-colors">{{ entry.title }}</h2>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{{ entry.category or "Private Segment" }}</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500">
+                    <i class="fa-solid fa-note-sticky"></i>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-hidden relative mb-6">
+                <p class="text-sm text-slate-400 leading-relaxed italic line-clamp-6 opacity-70 group-hover:opacity-100 transition-opacity">
+                    {{ entry.content }}
+                </p>
+                <!-- Bottom Fade -->
+                <div class="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-slate-900/50 to-transparent"></div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-6 border-t border-white/5">
+                <button class="p-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition" data-copy="{{ entry.content }}" title="Copy Content">
+                    <i class="fa-solid fa-copy text-xs"></i>
+                </button>
+                <a class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest text-center transition" href="{{ url_for('edit_note', note_id=entry.id) }}">
+                    REFINE NOTE
+                </a>
+                <form method="post" action="{{ url_for('delete_note', note_id=entry.id) }}" data-confirm="Erase this encrypted note permanently?" class="flex">
+                    <button class="p-3 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-xl border border-red-500/20 transition" type="submit">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
+                </form>
+            </div>
+        </article>
+        {% else %}
+        <div class="col-span-full py-24 text-center glass rounded-[3rem]">
+            <div class="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-white/5 shadow-2xl">
+                <i class="fa-solid fa-pencil text-3xl text-slate-700"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2 italic">No Encrypted Notes</h3>
+            <p class="text-sm text-slate-500">Document your sensitive thoughts and reminders securely.</p>
         </div>
-        <p class="notes-preview">{{ entry.content }}</p>
-        <div class="card-actions">
-            <button class="button small ghost" data-copy="{{ entry.content }}">Copy</button>
-            <a class="button small" href="{{ url_for('edit_note', note_id=entry.id) }}">Edit</a>
-            <form method="post" action="{{ url_for('delete_note', note_id=entry.id) }}" data-confirm="Delete this secure note?">
-                <button class="button small danger" type="submit">Delete</button>
-            </form>
-        </div>
-    </article>
-    {% else %}
-    <p class="empty">No matching secure notes found.</p>
-    {% endfor %}
-</section>
+        {% endfor %}
+    </section>
+</div>
 {% endblock %}
+

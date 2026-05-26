@@ -1,64 +1,159 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-950">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}SecureVault{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .sidebar-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-item:hover { background: rgba(59, 130, 246, 0.1); transform: translateX(4px); }
+        .sidebar-item.active { background: linear-gradient(to right, rgba(59, 130, 246, 0.2), transparent); border-left: 3px solid #3b82f6; color: #3b82f6; }
+        .text-gradient { background: linear-gradient(to right, #60a5fa, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    </style>
 </head>
-<body>
-    <div class="shell">
+<body class="h-full text-slate-200 antialiased overflow-hidden">
+    <div class="flex h-full overflow-hidden">
         {% if configured and request.endpoint not in ['login', 'setup', 'recover'] %}
-        <aside class="sidebar" id="sidebar">
-            <a class="brand" href="{{ url_for('dashboard') }}">
-                <span class="brand-mark"><span>SV</span></span>
-                <span>
-                    <strong>SecureVault</strong>
-                    <small>Private local vault</small>
-                </span>
-            </a>
-            <nav class="nav">
-                <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}"><span class="nav-icon icon-dashboard"></span>Dashboard</a>
-                <a href="{{ url_for('passwords') }}" class="{% if 'password' in request.endpoint %}active{% endif %}"><span class="nav-icon icon-key"></span>Passwords</a>
-                <a href="{{ url_for('totp_accounts') }}" class="{% if 'totp' in request.endpoint %}active{% endif %}"><span class="nav-icon icon-otp"></span>Authenticator</a>
-                <a href="{{ url_for('notes') }}" class="{% if 'note' in request.endpoint %}active{% endif %}"><span class="nav-icon icon-note"></span>Secure Notes</a>
-                <a href="{{ url_for('financial_accounts') }}" class="{% if 'financial' in request.endpoint %}active{% endif %}"><span class="nav-icon icon-record"></span>Records Vault</a>
-                <a href="{{ url_for('documents') }}" class="{% if request.endpoint == 'documents' %}active{% endif %}"><span class="nav-icon icon-doc"></span>Documents</a>
-                <a href="{{ url_for('trash') }}" class="{% if request.endpoint == 'trash' %}active{% endif %}"><span class="nav-icon icon-trash"></span>Trash</a>
-                <a href="{{ url_for('health') }}" class="{% if request.endpoint == 'health' %}active{% endif %}"><span class="nav-icon icon-health"></span>Vault Health</a>
-                <a href="{{ url_for('settings') }}" class="{% if request.endpoint in ['settings', 'change_master_password', 'recovery_kit'] %}active{% endif %}"><span class="nav-icon icon-security"></span>Security</a>
-                <a href="{{ url_for('audit_log') }}" class="{% if request.endpoint == 'audit_log' %}active{% endif %}"><span class="nav-icon icon-audit"></span>Audit Log</a>
+        <!-- Sidebar -->
+        <aside id="sidebar" class="hidden lg:flex flex-col w-72 h-full bg-slate-900 border-r border-white/5 z-50">
+            <div class="p-6">
+                <a href="{{ url_for('dashboard') }}" class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                        <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-black text-xl tracking-tighter text-white">SECURE<span class="text-blue-500">VAULT</span></h1>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Local Encryption</p>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+                <a href="{{ url_for('dashboard') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if request.endpoint == 'dashboard' %}active{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-chart-pie w-5"></i> Dashboard
+                </a>
+                <a href="{{ url_for('passwords') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if 'password' in request.endpoint %}active{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-key w-5"></i> Passwords
+                </a>
+                <a href="{{ url_for('totp_accounts') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if 'totp' in request.endpoint %}active{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-clock w-5"></i> Authenticator
+                </a>
+                <a href="{{ url_for('notes') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if 'note' in request.endpoint %}active{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-note-sticky w-5"></i> Secure Notes
+                </a>
+                <a href="{{ url_for('financial_accounts') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if 'financial' in request.endpoint %}active{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-wallet w-5"></i> Records Vault
+                </a>
+                <a href="{{ url_for('documents') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if request.endpoint == 'documents' %}active{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-file-shield w-5"></i> Documents
+                </a>
+                <div class="h-px bg-white/5 my-4 mx-4"></div>
+                <a href="{{ url_for('trash') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if request.endpoint == 'trash' %}active{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-trash-can w-5"></i> Trash
+                </a>
+                <a href="{{ url_for('health') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if request.endpoint == 'health' %}active{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-heart-pulse w-5"></i> Vault Health
+                </a>
+                <a href="{{ url_for('settings') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if request.endpoint in ['settings', 'change_master_password', 'recovery_kit'] %}active{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-gears w-5"></i> Settings
+                </a>
+                <a href="{{ url_for('audit_log') }}" class="sidebar-item group flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm {% if request.endpoint == 'audit_log' %}active{% else %}text-slate-400 hover:text-white{% endif %}">
+                    <i class="fa-solid fa-list-ul w-5"></i> Audit Log
+                </a>
             </nav>
-            <div class="sidebar-footer">
-                <small>Developer<br><a href="https://github.com/manoranjan2050" target="_blank" rel="noreferrer">MANORANJAN</a></small>
-                <a class="button ghost full" href="{{ url_for('backup') }}">Export Backup</a>
-                <a class="button danger full" href="{{ url_for('lock') }}">Lock Vault</a>
+
+            <div class="p-6 border-t border-white/5 space-y-4">
+                <a href="{{ url_for('backup') }}" class="flex items-center justify-center gap-2 w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs transition">
+                    <i class="fa-solid fa-download"></i> EXPORT BACKUP
+                </a>
+                <a href="{{ url_for('lock') }}" class="flex items-center justify-center gap-2 w-full py-3 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-xl font-bold text-xs transition border border-red-500/20">
+                    <i class="fa-solid fa-lock"></i> LOCK VAULT
+                </a>
+                <div class="text-center pt-2">
+                    <p class="text-[10px] text-slate-500">SecureVault by <a href="https://github.com/manoranjan2050" class="text-blue-500 hover:underline">Manoranjan</a></p>
+                </div>
             </div>
         </aside>
         {% endif %}
 
-        <main class="main">
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col min-w-0 bg-[#020617] relative">
             {% if configured and request.endpoint not in ['login', 'setup', 'recover'] %}
-            <header class="topbar">
-                <button class="icon-button" data-sidebar-toggle aria-label="Toggle sidebar">Menu</button>
-                <div>
-                    <p class="eyebrow">Encrypted local dashboard</p>
-                    <h1>{% block heading %}SecureVault{% endblock %}</h1>
+            <!-- Top Header -->
+            <header class="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-slate-900/50 backdrop-blur-md">
+                <div class="flex items-center gap-4">
+                    <button id="mobile-toggle" class="lg:hidden text-slate-400 hover:text-white"><i class="fa-solid fa-bars-staggered text-xl"></i></button>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Workspace</p>
+                        <h2 class="text-xl font-bold text-white tracking-tight">{% block heading %}SecureVault{% endblock %}</h2>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex flex-col text-right">
+                        <p class="text-[10px] font-black text-green-500 uppercase tracking-widest">Encryption Active</p>
+                        <p class="text-xs text-slate-500 italic">AES-256-GCM Secure</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10">
+                         <i class="fa-solid fa-user-shield text-slate-400"></i>
+                    </div>
                 </div>
             </header>
             {% endif %}
 
-            <section class="flash-stack">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% for category, message in messages %}
-                        <div class="flash {{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endwith %}
-            </section>
+            <!-- Scrollable Content Area -->
+            <div class="flex-1 overflow-y-auto p-8">
+                <!-- Flash Messages -->
+                <div class="max-w-4xl mx-auto space-y-4 mb-8">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-2xl flex items-center gap-3 border shadow-lg animate-in slide-in-from-top duration-300 {% if category == 'error' %}bg-red-500/10 border-red-500/20 text-red-500{% else %}bg-blue-500/10 border-blue-500/20 text-blue-400{% endif %}">
+                                <i class="fa-solid {% if category == 'error' %}fa-circle-xmark{% else %}fa-circle-check{% endif %} text-lg"></i>
+                                <span class="text-sm font-semibold">{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    {% endwith %}
+                </div>
 
-            {% block content %}{% endblock %}
+                <div class="max-w-6xl mx-auto h-full">
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
         </main>
     </div>
+
+    <!-- Mobile Sidebar Overlay (Placeholder) -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 hidden lg:hidden"></div>
+
+    <script>
+        const mobileToggle = document.getElementById('mobile-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+
+        if(mobileToggle) {
+            mobileToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('hidden');
+                sidebar.classList.toggle('fixed');
+                sidebar.classList.toggle('inset-y-0');
+                sidebar.classList.toggle('left-0');
+                overlay.classList.toggle('hidden');
+            });
+            overlay.addEventListener('click', () => {
+                sidebar.classList.add('hidden');
+                sidebar.classList.remove('fixed', 'inset-y-0', 'left-0');
+                overlay.classList.add('hidden');
+            });
+        }
+    </script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
+

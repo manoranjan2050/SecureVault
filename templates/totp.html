@@ -1,39 +1,121 @@
 {% extends "base.html" %}
 {% block title %}Authenticator - SecureVault{% endblock %}
-{% block heading %}Authenticator{% endblock %}
+{% block heading %}Secure Authenticator{% endblock %}
 {% block content %}
-<section class="toolbar">
-    <form method="get" class="search">
-        <input type="search" name="q" value="{{ search }}" placeholder="Search issuer or account">
-    </form>
-    <a class="button primary" href="{{ url_for('add_totp') }}">Add OTP</a>
-</section>
+<div class="space-y-8 animate-in fade-in duration-500 text-purple-400">
+    <!-- Action Toolbar -->
+    <section class="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center">
+        <form method="get" class="flex flex-wrap items-center gap-3 flex-1 w-full lg:w-auto">
+            <div class="relative flex-1 min-w-[300px]">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                <input type="search" name="q" value="{{ search }}" 
+                       class="w-full pl-12 pr-4 py-3 bg-slate-900 border border-white/5 rounded-xl text-sm focus:outline-none focus:border-purple-500/50 transition-all text-white" 
+                       placeholder="Search through your 2FA keys...">
+            </div>
+            <button class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition flex items-center gap-2" type="submit">
+                <i class="fa-solid fa-filter"></i>
+            </button>
+        </form>
+        <div class="flex items-center gap-3 w-full lg:w-auto">
+            <a class="flex-1 lg:flex-none px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20" href="{{ url_for('add_totp') }}">
+                <i class="fa-solid fa-plus"></i> NEW OTP
+            </a>
+        </div>
+    </section>
 
-<section class="cards">
-    {% for entry in entries %}
-    <article class="vault-card otp-card">
-        <div class="card-head">
-            <div class="title-group">
-                <span class="entry-icon icon-otp">{{ (entry.issuer or entry.account_name or "O")[0]|upper }}</span>
-                <div>
-                    <h2>{{ entry.issuer or "Authenticator" }}</h2>
-                    <p>{{ entry.account_name }}</p>
+    <!-- QR Code Import Zone -->
+    <section class="glass p-1 md:p-2 rounded-[3rem] border-white/5 bg-purple-600/5 relative overflow-hidden group">
+        <div class="absolute inset-0 bg-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+        <form class="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 border-2 border-dashed border-white/5 rounded-[2.5rem] group-hover:border-purple-500/30 transition-all" 
+              method="post" action="{{ url_for('import_totp_qr') }}" enctype="multipart/form-data">
+            <div class="flex-1 text-center md:text-left">
+                <div class="flex items-center justify-center md:justify-start gap-4 mb-2">
+                    <div class="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center text-white shadow-lg">
+                        <i class="fa-solid fa-qrcode text-lg"></i>
+                    </div>
+                    <h2 class="text-xl font-black text-white tracking-tight">QR Batch Import</h2>
+                </div>
+                <p class="text-[11px] text-slate-500 font-medium max-w-sm uppercase tracking-wider">
+                    Upload Google Authenticator <span class="text-purple-400 font-bold">Migration QR</span> or standard TOTP codes.
+                </p>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                <input type="file" name="qr_code" accept="image/*" required 
+                       class="w-full sm:w-auto text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer transition-all">
+                <button class="w-full sm:w-auto px-8 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black tracking-[0.2em] transition" 
+                        type="submit">
+                    IMPORT
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- OTP Grid -->
+    <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {% for entry in entries %}
+        <article class="glass group p-8 rounded-[2.5rem] border-white/5 hover:border-purple-500/30 transition-all duration-300 relative overflow-hidden flex flex-col otp-card">
+            <!-- Decoration -->
+            <div class="absolute -top-10 -right-10 w-24 h-24 bg-purple-600/5 rounded-full blur-2xl group-hover:bg-purple-600/10 transition-all"></div>
+            
+            <div class="flex justify-between items-start mb-8">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-400 font-black text-xl group-hover:bg-purple-500 group-hover:text-white transition-all duration-300">
+                        {{ (entry.issuer or entry.account_name or "O")[0]|upper }}
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-white tracking-tight leading-none mb-1 group-hover:text-purple-400 transition-colors">{{ entry.issuer or "Authenticator" }}</h2>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate max-w-[150px]">{{ entry.account_name }}</p>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="relative w-10 h-10 flex items-center justify-center" 
+                         data-totp-timer 
+                         data-seconds="{{ entry.seconds_left }}" 
+                         data-period="{{ entry.period or 30 }}">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="3" fill="transparent" class="text-slate-800" />
+                            <circle id="progress-{{ entry.id }}" cx="20" cy="20" r="18" stroke="currentColor" stroke-width="3" fill="transparent" 
+                                    stroke-dasharray="113.1" 
+                                    stroke-dashoffset="{{ (113.1 * (1 - entry.seconds_left / (entry.period or 30))) }}"
+                                    class="text-purple-500 transition-all duration-1000" />
+                        </svg>
+                        <span class="absolute text-[10px] font-black text-slate-300 countdown-label">{{ entry.seconds_left }}s</span>
+                    </div>
                 </div>
             </div>
-            <span class="tag">{{ entry.seconds_left }}s</span>
+
+            <div class="flex-1 flex flex-col justify-center items-center py-4">
+                <div class="text-5xl font-black text-white tracking-[0.15em] font-mono drop-shadow-2xl cursor-pointer hover:scale-110 transition-transform active:scale-95 select-all" data-copy="{{ entry.code }}">
+                    {{ entry.code }}
+                </div>
+                <p class="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] mt-4">One Time Password</p>
+            </div>
+
+            <div class="flex items-center gap-2 pt-8 border-t border-white/5 mt-6">
+                <button class="flex-1 py-3 bg-white/5 hover:bg-purple-600/20 text-purple-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest text-center transition border border-white/5" data-copy="{{ entry.code }}">
+                    COPY CODE
+                </button>
+                <a class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition" href="{{ url_for('edit_totp', entry_id=entry.id) }}">
+                    <i class="fa-solid fa-pen-to-square text-xs"></i>
+                </a>
+                <form method="post" action="{{ url_for('delete_totp', entry_id=entry.id) }}" data-confirm="Deauthorize this 2FA key?">
+                    <button class="p-3 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-xl border border-red-500/20 transition" type="submit">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
+                </form>
+            </div>
+        </article>
+        {% else %}
+        <div class="col-span-full py-24 text-center glass rounded-[3rem]">
+            <div class="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-white/5 shadow-2xl">
+                <i class="fa-solid fa-clock text-3xl text-slate-700"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2 italic">Authenticator Empty</h3>
+            <p class="text-sm text-slate-500">Securely sync your 2FA accounts for offline access.</p>
         </div>
-        <div class="otp-code" data-copy="{{ entry.code }}">{{ entry.code }}</div>
-        {% if entry.notes %}<p class="notes-preview">{{ entry.notes }}</p>{% endif %}
-        <div class="card-actions">
-            <button class="button small ghost" data-copy="{{ entry.code }}">Copy Code</button>
-            <a class="button small" href="{{ url_for('edit_totp', entry_id=entry.id) }}">Edit</a>
-            <form method="post" action="{{ url_for('delete_totp', entry_id=entry.id) }}" data-confirm="Delete this OTP account?">
-                <button class="button small danger" type="submit">Delete</button>
-            </form>
-        </div>
-    </article>
-    {% else %}
-    <p class="empty">No OTP accounts saved yet.</p>
-    {% endfor %}
-</section>
+        {% endfor %}
+    </section>
+</div>
 {% endblock %}
+

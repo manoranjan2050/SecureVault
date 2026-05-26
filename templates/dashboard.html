@@ -1,54 +1,143 @@
 {% extends "base.html" %}
 {% block title %}Dashboard - SecureVault{% endblock %}
-{% block heading %}Dashboard{% endblock %}
+{% block heading %}Vault Overview{% endblock %}
 {% block content %}
-<section class="grid stats-grid">
-    <article class="stat-card"><span>{{ stats.passwords }}</span><p>Passwords</p></article>
-    <article class="stat-card"><span>{{ stats.totp }}</span><p>OTP</p></article>
-    <article class="stat-card"><span>{{ stats.notes }}</span><p>Secure Notes</p></article>
-    <article class="stat-card"><span>{{ stats.financial }}</span><p>Records</p></article>
-    <article class="stat-card"><span>{{ stats.documents }}</span><p>Documents</p></article>
-    <article class="stat-card"><span>{{ stats.backups }}</span><p>Backups</p></article>
-</section>
+<div class="space-y-10 animate-in fade-in duration-700">
+    <!-- Stats Grid -->
+    <section class="grid grid-cols-2 lg:grid-cols-6 gap-4 md:gap-6">
+        <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                <i class="fa-solid fa-key"></i>
+            </div>
+            <p class="text-3xl font-black text-white">{{ stats.passwords }}</p>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Passwords</p>
+        </article>
+        
+        <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
+            <div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 mb-4 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            <p class="text-3xl font-black text-white">{{ stats.totp }}</p>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">OTP Keys</p>
+        </article>
 
-<section class="split">
-    <article class="panel">
-        <div class="panel-head">
-            <h2>Recent Passwords</h2>
-            <a class="button small" href="{{ url_for('add_password') }}">Add</a>
-        </div>
-        <div class="list">
-            {% for item in recent_passwords %}
-            <a href="{{ url_for('edit_password', entry_id=item.id) }}" class="list-row">
-                <span class="mini-entry-icon">{{ (item.title or "P")[0]|upper }}</span>
-                <span>
-                    <strong>{{ item.title }}</strong>
-                    <small>{{ item.username or "No username" }}</small>
-                </span>
-            </a>
-            {% else %}
-            <p class="empty">No passwords saved yet.</p>
-            {% endfor %}
-        </div>
-    </article>
-    <article class="panel">
-        <div class="panel-head">
-            <h2>Recent Notes</h2>
-            <a class="button small" href="{{ url_for('add_note') }}">Add</a>
-        </div>
-        <div class="list">
-            {% for item in recent_notes %}
-            <a href="{{ url_for('edit_note', note_id=item.id) }}" class="list-row">
-                <span class="mini-entry-icon note-mini">{{ (item.title or "N")[0]|upper }}</span>
-                <span>
-                    <strong>{{ item.title }}</strong>
-                    <small>{{ item.category or "Private" }}</small>
-                </span>
-            </a>
-            {% else %}
-            <p class="empty">No secure notes saved yet.</p>
-            {% endfor %}
-        </div>
-    </article>
-</section>
+        <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
+            <div class="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500 mb-4 group-hover:bg-pink-500 group-hover:text-white transition-colors">
+                <i class="fa-solid fa-note-sticky"></i>
+            </div>
+            <p class="text-3xl font-black text-white">{{ stats.notes }}</p>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Secure Notes</p>
+        </article>
+
+        <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
+            <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 mb-4 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                <i class="fa-solid fa-wallet"></i>
+            </div>
+            <p class="text-3xl font-black text-white">{{ stats.financial }}</p>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Records</p>
+        </article>
+
+        <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 mb-4 group-hover:bg-cyan-500 group-hover:text-white transition-colors">
+                <i class="fa-solid fa-file-shield"></i>
+            </div>
+            <p class="text-3xl font-black text-white">{{ stats.documents }}</p>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Documents</p>
+        </article>
+
+        <article class="glass p-6 rounded-3xl group hover:scale-105 transition-all duration-300">
+            <div class="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500 mb-4 group-hover:bg-green-500 group-hover:text-white transition-colors">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <p class="text-3xl font-black text-white">{{ stats.backups }}</p>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Backups</p>
+        </article>
+    </section>
+
+    <!-- Recent Items Split View -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Recent Passwords -->
+        <article class="glass p-8 rounded-[2.5rem] border-white/5 relative overflow-hidden">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Recent Passwords</h2>
+                    <p class="text-xs text-slate-500 font-medium">Quick access to your lately used keys</p>
+                </div>
+                <a href="{{ url_for('add_password') }}" class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20 transition-all">
+                    <i class="fa-solid fa-plus"></i>
+                </a>
+            </div>
+            
+            <div class="space-y-3">
+                {% for item in recent_passwords %}
+                <a href="{{ url_for('edit_password', entry_id=item.id) }}" class="flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all group">
+                    <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 font-black text-xl group-hover:bg-blue-500 group-hover:text-white transition-all">
+                        {{ (item.title or "P")[0]|upper }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-white truncate">{{ item.title }}</p>
+                        <p class="text-xs text-slate-500 truncate">{{ item.username or "No username" }}</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-slate-700 group-hover:text-slate-400 transition-colors"></i>
+                </a>
+                {% else %}
+                <div class="text-center py-10 opacity-50">
+                    <i class="fa-solid fa-key text-4xl mb-4"></i>
+                    <p class="text-sm font-medium">No passwords saved yet.</p>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if recent_passwords %}
+            <div class="mt-6 pt-6 border-t border-white/5">
+                <a href="{{ url_for('passwords') }}" class="text-xs font-bold text-blue-500 hover:text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                    View All Passwords <i class="fa-solid fa-arrow-right-long"></i>
+                </a>
+            </div>
+            {% endif %}
+        </article>
+
+        <!-- Recent Notes -->
+        <article class="glass p-8 rounded-[2.5rem] border-white/5 relative overflow-hidden">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-white tracking-tight">Secure Notes</h2>
+                    <p class="text-xs text-slate-500 font-medium">Encrypted thoughts and reminders</p>
+                </div>
+                <a href="{{ url_for('add_note') }}" class="w-10 h-10 rounded-full bg-pink-600 hover:bg-pink-500 text-white flex items-center justify-center shadow-lg shadow-pink-500/20 transition-all">
+                    <i class="fa-solid fa-plus"></i>
+                </a>
+            </div>
+            
+            <div class="space-y-3">
+                {% for item in recent_notes %}
+                <a href="{{ url_for('edit_note', note_id=item.id) }}" class="flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all group">
+                    <div class="w-12 h-12 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-400 font-black text-xl group-hover:bg-pink-500 group-hover:text-white transition-all">
+                        {{ (item.title or "N")[0]|upper }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-white truncate">{{ item.title }}</p>
+                        <p class="text-xs text-slate-500 truncate">{{ item.category or "Private" }}</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-slate-700 group-hover:text-slate-400 transition-colors"></i>
+                </a>
+                {% else %}
+                <div class="text-center py-10 opacity-50">
+                    <i class="fa-solid fa-note-sticky text-4xl mb-4"></i>
+                    <p class="text-sm font-medium">No secure notes saved yet.</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if recent_notes %}
+            <div class="mt-6 pt-6 border-t border-white/5">
+                <a href="{{ url_for('notes') }}" class="text-xs font-bold text-pink-500 hover:text-pink-400 uppercase tracking-widest flex items-center gap-2">
+                    Explore All Notes <i class="fa-solid fa-arrow-right-long"></i>
+                </a>
+            </div>
+            {% endif %}
+        </article>
+    </section>
+</div>
 {% endblock %}
+

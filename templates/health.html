@@ -1,21 +1,76 @@
 {% extends "base.html" %}
 {% block title %}Vault Health - SecureVault{% endblock %}
-{% block heading %}Vault Health{% endblock %}
+{% block heading %}System Diagnostics{% endblock %}
 {% block content %}
-<section class="grid stats-grid">
-    <article class="stat-card"><span>{{ report.total_passwords }}</span><p>Total Passwords</p></article>
-    <article class="stat-card"><span>{{ report.weak_passwords }}</span><p>Weak Passwords</p></article>
-    <article class="stat-card"><span>{{ report.duplicate_passwords }}</span><p>Duplicates</p></article>
-    <article class="stat-card"><span>{{ report.old_passwords }}</span><p>Old Passwords</p></article>
-    <article class="stat-card"><span>{{ report.missing_2fa }}</span><p>Missing 2FA Tag</p></article>
-</section>
-<section class="panel">
-    <h2>Suggestions</h2>
-    <div class="list">
-        <p class="list-row">Use unique passwords for each site.</p>
-        <p class="list-row">Add `2FA` or `TOTP` in tags for accounts protected by two-factor login.</p>
-        <p class="list-row">Update old passwords every 6-12 months for important accounts.</p>
-        <p class="list-row">Keep at least one encrypted `.svault` backup outside your PC.</p>
-    </div>
-</section>
+<div class="space-y-10 animate-in fade-in duration-500">
+    <!-- Diagnostics Grid -->
+    <section class="grid grid-cols-2 lg:grid-cols-5 gap-6">
+        <article class="glass p-6 rounded-3xl border-white/5">
+            <p class="text-4xl font-black text-white mb-1">{{ report.total_passwords }}</p>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-tight">Total Registry Entities</p>
+        </article>
+        
+        <article class="glass p-6 rounded-3xl border-red-500/10">
+            <p class="text-4xl font-black text-red-500 mb-1">{{ report.weak_passwords }}</p>
+            <p class="text-[10px] font-bold text-red-500/50 uppercase tracking-widest leading-tight">Weak Encryption</p>
+        </article>
+
+        <article class="glass p-6 rounded-3xl border-orange-500/10">
+            <p class="text-4xl font-black text-orange-500 mb-1">{{ report.duplicate_passwords }}</p>
+            <p class="text-[10px] font-bold text-orange-500/50 uppercase tracking-widest leading-tight">Duplicate Keys</p>
+        </article>
+
+        <article class="glass p-6 rounded-3xl border-yellow-500/10">
+            <p class="text-4xl font-black text-yellow-500 mb-1">{{ report.old_passwords }}</p>
+            <p class="text-[10px] font-bold text-yellow-500/50 uppercase tracking-widest leading-tight">Outdated Entries</p>
+        </article>
+
+        <article class="glass p-6 rounded-3xl border-purple-500/10">
+            <p class="text-4xl font-black text-purple-400 mb-1">{{ report.missing_2fa }}</p>
+            <p class="text-[10px] font-bold text-purple-400/50 uppercase tracking-widest leading-tight">Missing 2FA Signal</p>
+        </article>
+    </section>
+
+    <!-- Optimization Protocols -->
+    <section class="glass p-10 rounded-[3rem] border-white/5 bg-blue-600/[0.02]">
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-500">
+                <i class="fa-solid fa-notes-medical text-xl"></i>
+            </div>
+            <h2 class="text-2xl font-black text-white italic tracking-tight uppercase">Security Optimization Protocols</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex items-start gap-4 p-5 bg-slate-950/50 rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all group">
+                <i class="fa-solid fa-circle-check text-blue-500 mt-1 opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                <div>
+                    <h4 class="text-sm font-bold text-slate-200 mb-1">Unique Key Enforcement</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">Ensure every digital asset has a unique cryptographic signature. Never recycle passwords across services.</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-4 p-5 bg-slate-950/50 rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all group">
+                <i class="fa-solid fa-circle-check text-blue-500 mt-1 opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                <div>
+                    <h4 class="text-sm font-bold text-slate-200 mb-1">2FA Classification</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">Assign `2FA` or `TOTP` tags to accounts with active multi-factor authentication for better tracking.</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-4 p-5 bg-slate-950/50 rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all group">
+                <i class="fa-solid fa-circle-check text-blue-500 mt-1 opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                <div>
+                    <h4 class="text-sm font-bold text-slate-200 mb-1">Rotation Cycle</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">Update entries older than 365 days. Regular rotation mitigates risks of long-term exposure.</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-4 p-5 bg-slate-950/50 rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all group">
+                <i class="fa-solid fa-circle-check text-blue-500 mt-1 opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                <div>
+                    <h4 class="text-sm font-bold text-slate-200 mb-1">Off-System Redundancy</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">Store at least one encrypted `.SVAULT` backup on an external hardware volume or secure air-gapped storage.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
 {% endblock %}
+

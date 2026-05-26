@@ -1,36 +1,88 @@
 {% extends "base.html" %}
-{% block title %}Authenticator - SecureVault{% endblock %}
-{% block heading %}{{ "Edit OTP" if entry else "Add OTP" }}{% endblock %}
+{% block title %}Manage OTP - SecureVault{% endblock %}
+{% block heading %}{{ "Refine OTP Channel" if entry else "Authorize New 2FA" }}{% endblock %}
 {% block content %}
-<form class="form-panel" method="post">
-    <label>Issuer<input name="issuer" value="{{ entry.issuer if entry else '' }}" placeholder="Google, GitHub, Zerodha"></label>
-    <label>Account name<input name="account_name" value="{{ entry.account_name if entry else '' }}" placeholder="email@example.com" required></label>
-    <label>TOTP secret or otpauth URL<input name="secret" value="{{ entry.secret if entry else '' }}" required></label>
-    <div class="form-grid">
-        <label>Digits
-            <select name="digits">
-                <option value="6" {% if not entry or entry.digits == 6 %}selected{% endif %}>6</option>
-                <option value="8" {% if entry and entry.digits == 8 %}selected{% endif %}>8</option>
-            </select>
-        </label>
-        <label>Period
-            <select name="period">
-                <option value="30" {% if not entry or entry.period == 30 %}selected{% endif %}>30 seconds</option>
-                <option value="60" {% if entry and entry.period == 60 %}selected{% endif %}>60 seconds</option>
-            </select>
-        </label>
+<div class="max-w-4xl mx-auto animate-in slide-in-from-right duration-500">
+    <div class="glass p-8 md:p-12 rounded-[3.5rem] border-white/5 relative overflow-hidden">
+        <!-- Decoration -->
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-purple-600/10 rounded-full blur-3xl"></div>
+
+        <form class="space-y-8" method="post">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Issuer -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1 text-purple-400">Service Issuer</label>
+                    <input name="issuer" value="{{ entry.issuer if entry else '' }}" autofocus
+                           class="w-full px-6 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/10 transition-all placeholder:text-slate-800"
+                           placeholder="Google, GitHub, Zerodha...">
+                </div>
+                <!-- Account Name -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Account Identity</label>
+                    <input name="account_name" value="{{ entry.account_name if entry else '' }}" required
+                           class="w-full px-6 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/10 transition-all placeholder:text-slate-800"
+                           placeholder="user@example.com">
+                </div>
+            </div>
+
+            <!-- Secret -->
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1 text-green-400">Cryptographic Secret</label>
+                <div class="relative group">
+                    <input name="secret" value="{{ entry.secret if entry else '' }}" required
+                           class="w-full px-6 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white font-mono focus:outline-none focus:border-green-500/50 focus:ring-4 focus:ring-green-500/10 transition-all"
+                           placeholder="JBSWY3DPEHPK3PXP or otpauth://...">
+                    <i class="fa-solid fa-key absolute right-5 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-green-500 transition-colors"></i>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Digits -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Length</label>
+                    <select name="digits" class="w-full px-6 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-purple-500/50 transition-all appearance-none cursor-pointer">
+                        <option value="6" {% if not entry or entry.digits == 6 %}selected{% endif %}>6 Digits (Standard)</option>
+                        <option value="8" {% if entry and entry.digits == 8 %}selected{% endif %}>8 Digits (Advanced)</option>
+                    </select>
+                </div>
+                <!-- Period -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Cycle Duration</label>
+                    <select name="period" class="w-full px-6 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-purple-500/50 transition-all appearance-none cursor-pointer">
+                        <option value="30" {% if not entry or entry.period == 30 %}selected{% endif %}>30 Seconds</option>
+                        <option value="60" {% if entry and entry.period == 60 %}selected{% endif %}>60 Seconds</option>
+                    </select>
+                </div>
+                <!-- Algorithm -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Hash Protocol</label>
+                    <select name="algorithm" class="w-full px-6 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-purple-500/50 transition-all appearance-none cursor-pointer">
+                        <option value="SHA1" {% if not entry or entry.algorithm == 'SHA1' %}selected{% endif %}>SHA1</option>
+                        <option value="SHA256" {% if entry and entry.algorithm == 'SHA256' %}selected{% endif %}>SHA256</option>
+                        <option value="SHA512" {% if entry and entry.algorithm == 'SHA512' %}selected{% endif %}>SHA512</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Contextual Memo</label>
+                <textarea name="notes" rows="4"
+                          class="w-full px-6 py-4 bg-slate-950/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/10 transition-all placeholder:text-slate-800"
+                          placeholder="Important account recovery details or binding info...">{{ entry.notes if entry else '' }}</textarea>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-4 pt-10 border-t border-white/5">
+                <button class="flex-1 py-5 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-[2rem] shadow-2xl shadow-purple-500/20 transition-all transform active:scale-[0.98] uppercase tracking-[0.3em] text-xs" type="submit">
+                    <i class="fa-solid fa-clock-rotate-left mr-2"></i> AUTHORIZE KEY
+                </button>
+                <a class="flex-1 py-5 bg-slate-900/50 hover:bg-slate-800 text-slate-400 hover:text-white font-black rounded-[2rem] text-center transition-all uppercase tracking-[0.3em] text-xs border border-white/5" 
+                   href="{{ url_for('totp_accounts') }}">
+                    DISCARD
+                </a>
+            </div>
+        </form>
     </div>
-    <label>Algorithm
-        <select name="algorithm">
-            <option value="SHA1" {% if not entry or entry.algorithm == 'SHA1' %}selected{% endif %}>SHA1</option>
-            <option value="SHA256" {% if entry and entry.algorithm == 'SHA256' %}selected{% endif %}>SHA256</option>
-            <option value="SHA512" {% if entry and entry.algorithm == 'SHA512' %}selected{% endif %}>SHA512</option>
-        </select>
-    </label>
-    <label>Notes<textarea name="notes" rows="4">{{ entry.notes if entry else '' }}</textarea></label>
-    <div class="form-actions">
-        <button class="button primary" type="submit">Save OTP</button>
-        <a class="button ghost" href="{{ url_for('totp_accounts') }}">Cancel</a>
-    </div>
-</form>
+</div>
 {% endblock %}
+
