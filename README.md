@@ -30,8 +30,13 @@ Secure your data off-site with one-click encrypted exports to:
 
 ## 📦 Quick Start
 
+### Windows
 1. Double-click `start.bat` (Initializes environment and starts the vault).
 2. Open your secure browser to: `http://127.0.0.1:5000`.
+
+### Linux
+1. Open a terminal in the project folder.
+2. Run: `chmod +x start.sh && ./start.sh`
 3. Follow the **System Initialization** to create your Master Key.
 
 ## 🛠️ Tech Stack
