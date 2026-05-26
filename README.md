@@ -76,4 +76,12 @@ SecureVault is a **Zero-Knowledge, Offline Local Vault**.
 
 ---
 
+## ⚖️ Legal Disclaimer
+
+**Important:** SecureVault is provided "as is", without warranty of any kind. 
+*   **No Data Recovery:** As a zero-knowledge system, the developer has **zero access** to your data or keys. If you lose your Master Password, Keyfile, or Recovery Phrase, your data is **permanently and mathematically lost**.
+*   **User Responsibility:** The developer (MANORANJAN) is **NOT responsible** for any data loss, security breaches, or damages resulting from the use of this software. By using this application, you accept full responsibility for the management and backup of your cryptographic credentials.
+
+---
+
 *Developed with ❤️ by **[Manoranjan](https://github.com/manoranjan2050)** — Innovating at the intersection of Hardware, Software, and Finance.*
