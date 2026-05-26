@@ -4,6 +4,7 @@ All notable changes to **SecureVault** will be documented in this file.
 
 ## [2.2.0-Elite] - 2026-05-25
 ### Added
+- **Linux Compatibility:** Created `start.sh` for seamless startup on Linux distributions.
 - **Multi-Cloud Redundancy:** Triple-site off-site backup system featuring:
     - **Telegram Cloud Export:** One-click encrypted vault delivery to private chats via @SecureVault2050bot.
     - **GitHub Private Sync:** Automated version-controlled backups to private repositories via GitHub API.
