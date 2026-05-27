@@ -42,6 +42,48 @@ Secure your vault with one-click encrypted exports to global providers:
 
 ---
 
+## 📸 Visual Experience & Command Center
+
+### 🖥️ Main Dashboard
+*High-density analytics and real-time security status monitoring.*
+![Dashboard](Image/dashboard_page.jpg)
+
+<br>
+
+### 🔐 Security & Access Control
+| Authentication Gateway | Master Setup |
+| :---: | :---: |
+| ![Login](Image/login_page.jpg) | ![Setup](Image/setup_page.jpg) |
+
+<br>
+
+### 💼 Vault Management
+| Password Manager | 2FA Authenticator |
+| :---: | :---: |
+| ![Passwords](Image/add_password_page.jpg) | ![TOTP](Image/2FA_TOTP.jpg) |
+
+<br>
+
+### 🛡️ System Integrity & Maintenance
+| Maintenance Hub | Emergency Recovery |
+| :---: | :---: |
+| ![Maintenance](Image/backup_maintenance.jpg) | ![Recovery](Image/Emergency_recovery_page.jpg) |
+
+<br>
+
+### ⚙️ Environment Configuration
+| Global Settings | System Diagnostics |
+| :---: | :---: |
+| ![Settings](Image/Setting_page.jpg) | ![Diagnostics](Image/system_diagnostics_page.jpg) |
+
+<br>
+
+### 📜 Transparency & Logs
+*Comprehensive audit trails for every cryptographic event.*
+![Logs](Image/system_log_page.jpg)
+
+---
+
 ## 🛠️ Technical Specifications
 
 | Component | Technology |
