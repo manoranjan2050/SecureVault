@@ -2,6 +2,15 @@
 
 All notable changes to **SecureVault** will be documented in this file.
 
+## [2.2.2-Elite] - 2026-05-27
+### Added
+- **Legacy Password Support**: Added the ability to restore older backups using their original master passwords or keyfiles directly from the Maintenance dashboard.
+- **Session Key Auto-Sync**: The system now automatically synchronizes your active session key after a successful restoration, ensuring immediate access to all data without manual relogging.
+
+### Fixed
+- **Note Decryption Resiliency**: Fixed a critical crash (InvalidTag) in the `/notes` section caused by key mismatches after restoration.
+- **Graceful Error Handling**: Individual notes that fail to decrypt now display a specific error placeholder rather than crashing the entire page.
+
 ## [2.2.1-Elite] - 2026-05-26
 ### Added
 - **Dual-Factor Security (Keyfile):** Implemented an optional physical key system. Cryptographic keys are now derived from both the Master Password and a high-entropy keyfile for "Air-Gapped" protection.

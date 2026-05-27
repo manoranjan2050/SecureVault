@@ -1,4 +1,4 @@
-# 🛡️ SecureVault (Elite Edition) v2.2.1
+# 🛡️ SecureVault (Elite Edition) v2.2.2
 
 ![Security Level](https://img.shields.io/badge/Security_Level-Extreme-red?style=for-the-badge&logo=shield)
 ![Encryption](https://img.shields.io/badge/Encryption-AES--256--GCM-blue?style=for-the-badge)
@@ -15,7 +15,8 @@
 *   **Dual-Factor Physical Keys:** Use an optional high-entropy **Keyfile** to secure your vault. Decryption is mathematically impossible without both the password and the physical file.
 *   **Bit-Level Sealing:** All data is encrypted using **AES-256-GCM** authenticated encryption.
 *   **Fortified Key Derivation:** Employs **Argon2id** (the winner of the Password Hashing Competition) to derive keys, making brute-force attacks mathematically infeasible.
-*   **Recovery Protocol Kit:** A fail-safe emergency system using an offline master key phrase to recover data if the master password is lost. Now supports **direct backup restoration via phrase**.
+*   **Recovery Protocol Kit:** A fail-safe emergency system using an offline master key phrase to recover data if the master password is lost.
+*   **Direct Legacy Restoration:** Restore old backups using their original master passwords or keyfiles directly from the maintenance dashboard, even if they differ from your current session credentials.
 
 ### 📂 Full Portability & Topology
 *   **Custom Vault Root:** Choose exactly where your secrets live. Mount vaults from USB drives, air-gapped partitions, or cloud-synced local folders.

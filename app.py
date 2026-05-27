@@ -1071,7 +1071,11 @@ def create_app() -> Flask:
         entries = []
         for row in rows:
             decrypted = dict(row)
-            decrypted["content"] = decrypt_text(row["encrypted_content"], key)
+            try:
+                decrypted["content"] = decrypt_text(row["encrypted_content"], key)
+            except Exception:
+                decrypted["content"] = "[DECRYPTION ERROR: Possible key mismatch or corrupted data]"
+                
             if search and search.lower() not in " ".join(
                 [decrypted["title"], decrypted["category"] or "", decrypted["content"]]
             ).lower():
@@ -1370,23 +1374,41 @@ def create_app() -> Flask:
         if not uploaded or not uploaded.filename:
             flash("Choose a .svault backup file first.", "error")
             return redirect(url_for("maintenance"))
+        
         restore_type = request.form.get("restore_type", "password")
+        legacy_password = request.form.get("legacy_password", "").strip()
+        legacy_keyfile = request.files.get("legacy_keyfile")
+        legacy_keyfile_data = legacy_keyfile.read() if legacy_keyfile else b""
+        
         try:
             data = uploaded.read()
+            restored_key = None
             if restore_type == "phrase":
                 phrase = request.form.get("recovery_phrase", "").strip()
                 if not phrase:
                     flash("Recovery phrase is required.", "error")
                     return redirect(url_for("maintenance"))
-                restore_backup_bytes(data, phrase)
+                restored_key = restore_backup_bytes(data, phrase)
+            elif legacy_password:
+                restored_key = restore_backup_bytes(data, password=legacy_password, keyfile_data=legacy_keyfile_data)
             else:
-                restore_backup_bytes(data, key)
+                restored_key = restore_backup_bytes(data, key)
+            
+            # Synchronize session key if it changed
+            if restored_key and restored_key != key:
+                token = secrets.token_urlsafe(32)
+                ACTIVE_KEYS[token] = (restored_key, time.time())
+                session.clear()
+                session["vault_token"] = token
+                log_audit("restore_session_sync", "Session key updated to match restored backup")
+                
         except Exception as e:
             log_audit("restore_failed", f"Backup restore error: {str(e)}")
             flash(f"Restoration failed: {str(e)}", "error")
             return redirect(url_for("maintenance"))
+        
         log_audit("restore", f"Backup restored: {Path(uploaded.filename).name}")
-        flash("Backup restored successfully.", "success")
+        flash("Backup restored successfully. Your vault has been updated.", "success")
         return redirect(url_for("dashboard"))
 
     @app.route("/change-master-password", methods=["GET", "POST"])
@@ -2334,10 +2356,10 @@ def run_auto_backup(key: bytes) -> None:
     log_audit("auto_backup", f"Auto backup created: {backup_path.name}")
 
 
-def restore_backup_bytes(data: bytes, key_or_phrase: str | bytes) -> None:
+def restore_backup_bytes(data: bytes, key_or_phrase: str | bytes = None, password: str = None, keyfile_data: bytes = b"") -> bytes:
     vault_key = None
     
-    # Modern Format: Starts with MAGIC
+    # 1. Handle Modern Format (Starts with MAGIC)
     if data.startswith(BACKUP_MAGIC):
         try:
             # Read header: MAGIC(4), KDF_SALT(16), REC_SALT(16), WRAPPED_LEN(4)
@@ -2348,20 +2370,20 @@ def restore_backup_bytes(data: bytes, key_or_phrase: str | bytes) -> None:
             encrypted_payload = data[40+wrapped_len:]
             
             if not encrypted_payload: raise ValueError("Backup file contains no payload data.")
-        except (struct.error, ValueError) as e:
+        except (struct.error, ValueError):
             # Fallback for simple SVLT+SALT format (pre-v2.2.1)
-            if isinstance(key_or_phrase, str):
-                raise ValueError("This is a legacy backup. Recovery phrases are only supported for backups created with Elite v2.2.1+.")
-            
             kdf_salt = data[4:20]
             encrypted_payload = data[20:]
             wrapped_key = b""
             rec_salt = None
 
-        if isinstance(key_or_phrase, bytes):
-            # Provided master key (password-based)
+        if password:
+            # Derived from a specific provided password (e.g., legacy restore)
+            vault_key = derive_key(password, kdf_salt, keyfile_data)
+        elif isinstance(key_or_phrase, bytes):
+            # Provided direct master key (current session)
             vault_key = key_or_phrase
-        else:
+        elif isinstance(key_or_phrase, str):
             # Provided recovery phrase
             if not wrapped_key or rec_salt is None or rec_salt == b"\x00" * 16:
                 raise ValueError("This backup does not contain recovery metadata. You must restore it using the original Master Password.")
@@ -2369,12 +2391,23 @@ def restore_backup_bytes(data: bytes, key_or_phrase: str | bytes) -> None:
                 recovery_key = derive_key(key_or_phrase, rec_salt)
                 vault_key = unwrap_key(wrapped_key, recovery_key)
             except Exception:
-                raise ValueError("Recovery phrase is incorrect. It does not match the cryptographic signature of this backup.")
+                raise ValueError("Recovery phrase is incorrect for this backup.")
     else:
-        # Legacy Format: No Magic
+        # 2. Handle Legacy Format (No Magic)
+        if password:
+            # We don't have a salt in the header for no-magic legacy files? 
+            # Actually, most early formats either had no salt or the salt was known.
+            # But the 'else' case for MAGIC-less backups usually means very old or invalid.
+            # If the user provides a password, we'll try to use a dummy or let it fail.
+            raise ValueError("Unsupported legacy backup format (Missing MAGIC header).")
+            
         if isinstance(key_or_phrase, str):
-            raise ValueError("Recovery phrase restore is only supported for modern .svault backups (Elite v2.2.1+).")
+            raise ValueError("Recovery phrase restore is only supported for modern .svault backups.")
         vault_key = key_or_phrase
+        encrypted_payload = data
+        
+    if not vault_key:
+        raise ValueError("No valid decryption key provided.")
         
     try:
         decrypted = decrypt_bytes(encrypted_payload, vault_key)
@@ -2414,6 +2447,7 @@ def restore_backup_bytes(data: bytes, key_or_phrase: str | bytes) -> None:
             raise RuntimeError(f"File system error during restore: {str(e)}")
             
     init_db()
+    return vault_key
 
 
 def reencrypt_vault(old_key: bytes, new_key: bytes) -> None:
